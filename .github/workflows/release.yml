@@ -1,0 +1,40 @@
+
+name: Release
+
+on:
+  release:
+    types: [created]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+      - uses: Swatinem/rust-cache@v1
+      - name: Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+      - run: mkdir staging
+      - name: Upload the binary
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./target/release/zoltan.exe
+          asset_name: zoltan.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
