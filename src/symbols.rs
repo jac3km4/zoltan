@@ -289,6 +289,14 @@ impl FunctionSymbol {
     pub(crate) fn new(name: String, typ: FunctionType, addr: u64) -> Self {
         Self { name, typ, addr }
     }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn addr(&self) -> u64 {
+        self.addr
+    }
 }
 
 #[derive(Debug)]

@@ -10,6 +10,7 @@ use object::{Object, ObjectSection};
 use crate::error::Error;
 use crate::symbols::ObjectProperties;
 
+pub mod codegen;
 pub mod defns;
 pub mod error;
 pub mod patterns;
@@ -58,7 +59,9 @@ fn run(source_path: &Path, exe_path: &Path, out_path: &Path) -> Result<(), Error
             log::warn!("Some of the patterns have failed:\n{message}",);
         }
 
+        codegen::write_header(&syms, File::create(out_path.with_extension("h"))?)?;
         symbols::generate(syms, props, File::create(out_path)?)?;
+
         log::info!("Written the debug symbols to {}", out_path.display());
     } else {
         log::error!("Code section missing from the executable, nothing to do")
