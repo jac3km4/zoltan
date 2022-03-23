@@ -127,12 +127,9 @@ impl<'a> DwarfProcessor<'a> {
                 entry.set(gimli::DW_AT_mutable, AttributeValue::Flag(!qual.c_const));
                 id
             }
-            Type::Struct(StructType::Named(name, ty_ref)) => self.define_struct(
-                get_str!(name),
-                &ty_ref.get(),
-                typ.sizeof().ok(),
-                typ.alignof().ok(),
-            ),
+            Type::Struct(StructType::Named(name, ty_ref)) => {
+                self.define_struct(get_str!(name), &ty_ref.get(), typ.sizeof().ok())
+            }
             Type::Array(_, _) => todo!(),
             Type::Function(_) => todo!(),
             Type::Union(_) => todo!(),
@@ -156,13 +153,7 @@ impl<'a> DwarfProcessor<'a> {
         id
     }
 
-    fn define_struct(
-        &mut self,
-        name: &str,
-        members: &[Variable],
-        size: Option<u64>,
-        align: Option<u64>,
-    ) -> UnitEntryId {
+    fn define_struct(&mut self, name: &str, members: &[Variable], size: Option<u64>) -> UnitEntryId {
         let id = self.unit.add(self.unit.root(), gimli::DW_TAG_structure_type);
         let entry = self.unit.get_mut(id);
         let name = AttributeValue::String(name.as_bytes().to_vec());
@@ -174,21 +165,23 @@ impl<'a> DwarfProcessor<'a> {
         let mut member_types = vec![];
         for member in members {
             let typ = self.get_type(&member.ctype);
-            member_types.push((member.id.resolve_and_clone(), typ, member.ctype.sizeof().ok()))
+            let size = member.ctype.sizeof().ok();
+            let align = member.ctype.alignof().ok();
+            member_types.push((member.id.resolve_and_clone(), typ, size, align))
         }
 
         let mut offset = 0;
-        for (name, ty, size) in member_types {
+        for (name, typ_id, size, align) in member_types {
             let param = self.unit.add(id, gimli::DW_TAG_member);
             let param = self.unit.get_mut(param);
             let name = AttributeValue::String(name.as_bytes().to_vec());
             param.set(gimli::DW_AT_name, name);
-            param.set(gimli::DW_AT_type, AttributeValue::UnitRef(ty));
+            param.set(gimli::DW_AT_type, AttributeValue::UnitRef(typ_id));
             param.set(gimli::DW_AT_data_member_location, AttributeValue::Data8(offset));
 
             if let Some(size) = size {
-                offset += size;
                 offset += offset % align.unwrap_or(1);
+                offset += size;
             }
         }
 
@@ -211,18 +204,18 @@ impl<'a> DwarfProcessor<'a> {
         proc.set(gimli::DW_AT_low_pc, pc);
         proc.set(gimli::DW_AT_type, AttributeValue::UnitRef(ret_type));
 
-        for (name, ty) in args {
+        for (name, typ_id) in args {
             let param = self.unit.add(proc_id, gimli::DW_TAG_formal_parameter);
             let param = self.unit.get_mut(param);
             let name = AttributeValue::String(name.as_bytes().to_vec());
             param.set(gimli::DW_AT_name, name);
-            param.set(gimli::DW_AT_type, AttributeValue::UnitRef(ty));
+            param.set(gimli::DW_AT_type, AttributeValue::UnitRef(typ_id));
         }
     }
 }
 
-pub fn get_type_name(ty: &Type) -> Cow<'static, str> {
-    match ty {
+pub fn get_type_name(typ: &Type) -> Cow<'static, str> {
+    match typ {
         Type::Void => Cow::Borrowed("void"),
         Type::Bool => Cow::Borrowed("bool"),
         Type::Char(_) => Cow::Borrowed("char"),

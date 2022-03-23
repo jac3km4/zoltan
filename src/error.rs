@@ -3,7 +3,7 @@ use std::io;
 
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
     #[error("invalid comment parameter {0}: {1}")]
     InvalidCommentParam(&'static str, String),

@@ -37,6 +37,8 @@ impl Definitions {
                     let slice = prog.files.source_slice(file, span).unwrap();
                     if let Some(kv) = DefnParam::from_comment(slice) {
                         params.push(kv?);
+                    } else {
+                        break;
                     }
                 }
 
@@ -83,7 +85,7 @@ impl Function {
     }
 
     pub fn into_symbol(self, addr: u64) -> FunctionSymbol {
-        let addr = (addr as i64 + self.offset.unwrap_or(0)) as u64;
+        let addr = (addr as i64 - self.offset.unwrap_or(0)) as u64;
         FunctionSymbol::new(self.name, self.typ, addr)
     }
 
@@ -121,5 +123,36 @@ impl DefnParam {
             .split_once(' ')?;
 
         Some(Self::from_key_val(key, val.trim()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::assert_matches::assert_matches;
+
+    use super::*;
+
+    #[test]
+    fn parse_valid_defn_params() {
+        assert_matches!(
+            DefnParam::from_comment("/// @offset  1234"),
+            Some(Ok(DefnParam::Offset(1234)))
+        );
+        assert_matches!(
+            DefnParam::from_comment(" ///  @offset -10"),
+            Some(Ok(DefnParam::Offset(-10)))
+        );
+        assert_matches!(
+            DefnParam::from_comment("/// @pattern 45 EF 88"),
+            Some(Ok(DefnParam::Pattern(_)))
+        );
+    }
+
+    #[test]
+    fn reject_invalid_defn_param() {
+        assert_matches!(
+            DefnParam::from_comment(" ///  @flag test"),
+            Some(Err(Error::UnknownCommentParam(_)))
+        );
     }
 }

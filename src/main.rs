@@ -1,4 +1,5 @@
 #![feature(slice_group_by)]
+#![feature(assert_matches)]
 use std::fs::File;
 use std::path::Path;
 
