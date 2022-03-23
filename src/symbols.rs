@@ -7,8 +7,8 @@ use gimli::DwAte;
 use object::{Architecture, BinaryFormat, Endianness, Object, SectionKind};
 use saltwater::data::types::Type;
 use saltwater::hir::Variable;
-use saltwater::types::FunctionType;
-use saltwater::{get_str, StructType};
+use saltwater::types::{ArrayType, FunctionType};
+use saltwater::{get_str, InternedStr, StructType};
 
 use crate::defns::Function;
 use crate::error::{Error, SymbolError};
@@ -95,7 +95,7 @@ impl<'a> DwarfProcessor<'a> {
         let name = get_type_name(typ);
         self.known.get(&name).cloned().unwrap_or_else(|| {
             let id = self.define_type(typ);
-            self.known.insert(get_type_name(typ), id);
+            self.known.insert(name, id);
             id
         })
     }
@@ -118,8 +118,6 @@ impl<'a> DwarfProcessor<'a> {
                 let id = self.unit.add(self.unit.root(), gimli::DW_TAG_pointer_type);
                 let inner = self.get_type(inner);
                 let entry = self.unit.get_mut(id);
-                let name = AttributeValue::String(get_type_name(typ).as_bytes().to_vec());
-                entry.set(gimli::DW_AT_name, name);
                 entry.set(gimli::DW_AT_type, AttributeValue::UnitRef(inner));
                 let encoding = AttributeValue::Encoding(gimli::DW_ATE_address);
                 entry.set(gimli::DW_AT_encoding, encoding);
@@ -130,10 +128,24 @@ impl<'a> DwarfProcessor<'a> {
             Type::Struct(StructType::Named(name, ty_ref)) => {
                 self.define_struct(get_str!(name), &ty_ref.get(), typ.sizeof().ok())
             }
-            Type::Array(_, _) => todo!(),
+            Type::Array(inner, arr_type) => {
+                let id = self.unit.add(self.unit.root(), gimli::DW_TAG_array_type);
+                let inner = self.get_type(inner);
+                let entry = self.unit.get_mut(id);
+                entry.set(gimli::DW_AT_type, AttributeValue::UnitRef(inner));
+                if let Ok(size) = typ.sizeof() {
+                    entry.set(gimli::DW_AT_byte_size, AttributeValue::Data8(size));
+                }
+                if let ArrayType::Fixed(len) = arr_type {
+                    let range = self.unit.add(id, gimli::DW_TAG_subrange_type);
+                    let range = self.unit.get_mut(range);
+                    range.set(gimli::DW_AT_upper_bound, AttributeValue::Data8(*len));
+                }
+                id
+            }
+            Type::Enum(Some(name), members) => self.define_enum(get_str!(name), members),
             Type::Function(_) => todo!(),
             Type::Union(_) => todo!(),
-            Type::Enum(_, _) => todo!(),
             _ => unimplemented!(),
         }
     }
@@ -167,14 +179,14 @@ impl<'a> DwarfProcessor<'a> {
             let typ = self.get_type(&member.ctype);
             let size = member.ctype.sizeof().ok();
             let align = member.ctype.alignof().ok();
-            member_types.push((member.id.resolve_and_clone(), typ, size, align))
+            member_types.push((member.id, typ, size, align))
         }
 
         let mut offset = 0;
         for (name, typ_id, size, align) in member_types {
             let param = self.unit.add(id, gimli::DW_TAG_member);
             let param = self.unit.get_mut(param);
-            let name = AttributeValue::String(name.as_bytes().to_vec());
+            let name = AttributeValue::String(get_str!(name).as_bytes().to_vec());
             param.set(gimli::DW_AT_name, name);
             param.set(gimli::DW_AT_type, AttributeValue::UnitRef(typ_id));
             param.set(gimli::DW_AT_data_member_location, AttributeValue::Data8(offset));
@@ -188,12 +200,30 @@ impl<'a> DwarfProcessor<'a> {
         id
     }
 
+    fn define_enum(&mut self, name: &str, members: &[(InternedStr, i64)]) -> UnitEntryId {
+        let id = self.unit.add(self.unit.root(), gimli::DW_TAG_enumeration_type);
+        let entry = self.unit.get_mut(id);
+        let name = AttributeValue::String(name.as_bytes().to_vec());
+        entry.set(gimli::DW_AT_name, name);
+        entry.set(gimli::DW_AT_byte_size, AttributeValue::Data1(4));
+
+        for (member_name, val) in members {
+            let member = self.unit.add(id, gimli::DW_TAG_enumerator);
+            let member = self.unit.get_mut(member);
+            let name = AttributeValue::String(get_str!(member_name).as_bytes().to_vec());
+            member.set(gimli::DW_AT_name, name);
+            member.set(gimli::DW_AT_const_value, AttributeValue::Sdata(*val));
+        }
+
+        id
+    }
+
     fn define_function(&mut self, fun: FunctionSymbol) {
         let ret_type = self.get_type(&fun.typ.return_type);
         let mut args = vec![];
         for arg_types in fun.typ.params {
             let var = arg_types.get();
-            args.push((var.id.resolve_and_clone(), self.get_type(&var.ctype)))
+            args.push((var.id, self.get_type(&var.ctype)))
         }
 
         let proc_id = self.unit.add(self.unit.root(), gimli::DW_TAG_subprogram);
@@ -207,7 +237,7 @@ impl<'a> DwarfProcessor<'a> {
         for (name, typ_id) in args {
             let param = self.unit.add(proc_id, gimli::DW_TAG_formal_parameter);
             let param = self.unit.get_mut(param);
-            let name = AttributeValue::String(name.as_bytes().to_vec());
+            let name = AttributeValue::String(get_str!(name).as_bytes().to_vec());
             param.set(gimli::DW_AT_name, name);
             param.set(gimli::DW_AT_type, AttributeValue::UnitRef(typ_id));
         }
