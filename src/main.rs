@@ -50,7 +50,12 @@ fn run(source_path: &Path, exe_path: &Path, out_path: &Path) -> Result<(), Error
         let (syms, errors) = symbols::resolve(definitions.into_functions(), code.data()?, code.address());
         log::info!("Found {} symbols", syms.len());
         if !errors.is_empty() {
-            log::warn!("Some of the patterns have failed: {errors:?}");
+            let message = errors
+                .iter()
+                .map(|err| err.to_string())
+                .collect::<Vec<_>>()
+                .join("\n");
+            log::warn!("Some of the patterns have failed:\n{message}",);
         }
 
         symbols::generate(syms, props, File::create(out_path)?)?;

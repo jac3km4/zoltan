@@ -40,8 +40,10 @@ impl Error {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum SymbolError {
-    MoreThanOneMatch(String),
+    #[error("too many matches for {0} ({1})")]
+    MoreThanOneMatch(String, usize),
+    #[error("no matches for {0}")]
     NoMatches(String),
 }

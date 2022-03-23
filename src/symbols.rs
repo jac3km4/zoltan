@@ -21,18 +21,23 @@ pub fn resolve(
     haystack: &[u8],
     address_base: u64,
 ) -> (Vec<FunctionSymbol>, Vec<SymbolError>) {
-    let matches = patterns::multi_search(functions.iter().map(Function::pattern), haystack);
+    let mut match_map = HashMap::new();
+    for mat in patterns::multi_search(functions.iter().map(Function::pattern), haystack) {
+        match_map
+            .entry(mat.pattern)
+            .and_modify(|(_, count)| *count += 1)
+            .or_insert((mat.rva, 1usize));
+    }
+
     let mut syms = vec![];
     let mut errs = vec![];
-
     for (i, fun) in functions.into_iter().enumerate() {
-        let mut it = matches.iter().filter(|m| m.pattern == i).peekable();
-        match it.next() {
-            Some(_) if it.peek().is_some() => {
-                errs.push(SymbolError::MoreThanOneMatch(fun.into_name()));
+        match match_map.get(&i) {
+            Some((_, count)) if *count > 1 => {
+                errs.push(SymbolError::MoreThanOneMatch(fun.into_name(), *count));
             }
-            Some(mat) => {
-                syms.push(fun.into_symbol(address_base + mat.rva));
+            Some((rva, _)) => {
+                syms.push(fun.into_symbol(address_base + rva));
             }
             None => {
                 errs.push(SymbolError::NoMatches(fun.into_name()));
