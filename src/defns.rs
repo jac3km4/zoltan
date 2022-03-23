@@ -21,7 +21,10 @@ impl Definitions {
         let prog = check_semantics(source.as_ref(), Opt::default());
         let mut functions = vec![];
 
-        for decl in prog.result.map_err(Error::CompileError)? {
+        for decl in prog
+            .result
+            .map_err(|errs| Error::from_compile_error(errs, &prog.files))?
+        {
             let var = decl.data.symbol.get();
             if let Variable {
                 ctype: Type::Function(fun_typ),

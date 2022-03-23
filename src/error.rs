@@ -11,8 +11,8 @@ pub enum Error {
     UnknownCommentParam(String),
     #[error("missing pattern parameter")]
     MissingPattern,
-    #[error("compile errors: {0:?}")]
-    CompileError(VecDeque<saltwater::Locatable<saltwater::data::Error>>),
+    #[error("compile errors:\n{0}")]
+    CompileError(String),
     #[error("object file error: {0}")]
     ObjectError(#[from] object::Error),
     #[error("DWARF error: {0}")]
@@ -21,6 +21,23 @@ pub enum Error {
     IoError(#[from] io::Error),
     #[error("{0}")]
     OtherError(#[from] Box<dyn std::error::Error>),
+}
+
+impl Error {
+    pub fn from_compile_error(errs: VecDeque<saltwater::CompileError>, files: &saltwater::Files) -> Self {
+        let message = errs
+            .iter()
+            .map(|err| {
+                let loc = files
+                    .location(err.location.file, err.location.span.start)
+                    .unwrap();
+                format!("at {}:{}: {}", loc.line, loc.column, err.data)
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        Self::CompileError(message)
+    }
 }
 
 #[derive(Debug)]

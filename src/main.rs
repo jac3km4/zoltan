@@ -26,7 +26,7 @@ fn main() {
             match run(source_path.as_ref(), exe_path.as_ref(), out_path.as_ref()) {
                 Ok(()) => log::info!("Finished!"),
                 Err(err) => {
-                    log::error!("Unexpected error: {err}");
+                    log::error!("{err}");
                     std::process::exit(1);
                 }
             }
