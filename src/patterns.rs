@@ -204,7 +204,7 @@ mod tests {
     fn match_valid_patterns() {
         let pat1 = Pattern::parse("FD 98 07 ? ? 49 C5").unwrap();
         let pat2 = Pattern::parse("? BB 5E 83 F1 ? 49").unwrap();
-        let pat3 = Pattern::parse("BA (match) 89 BF").unwrap();
+        let pat3 = Pattern::parse("BA (match:rel) 89 BF").unwrap();
         let haystack = [
             0x9C, 0x0D, 0x1C, 0x53, 0x1D, 0x35, 0xFD, 0x98, 0x07, 0x10, 0x22, 0x49, 0xC5, 0xBB, 0x5E, 0x83,
             0xF1, 0xBF, 0x49, 0x8E, 0x78, 0x32, 0x17, 0xC1, 0x6F, 0xBA, 0x83, 0x5B, 0x5D, 0x83, 0x89, 0xBF,
@@ -218,7 +218,7 @@ mod tests {
 
     #[test]
     fn return_correct_groups() {
-        let pat = Pattern::parse("BA CC (one) FF 89 BF (two) (three) 56").unwrap();
+        let pat = Pattern::parse("BA CC (one:rel) FF 89 BF (two:rel) (three:rel) 56").unwrap();
         assert_matches!(pat.groups().collect::<Vec<_>>().as_slice(), &[
             ("one", VarType::Rel, 2),
             ("two", VarType::Rel, 9),
