@@ -36,7 +36,7 @@ Zoltan supports standar IDA-style paterns:
 /// @pattern 48 83 EC 30 48 8B 09 41 8B F1 41 8B E8 48 8B DA 48 85 C9 74 65
 typedef void give_item(struct Object** target, struct Object** item, unsigned int quantity);
 
-// defines a pattern that matches the 5th result out of 24
+// defines a pattern that matches the 6th (0-based) result out of 24
 /// @pattern 57 48 83 EC 30 48 C7 44 24 20 FE FF FF FF 48 89 5C 24 48 48 8B
 /// @nth 5/24
 typedef void remove_item(struct Object** item);
