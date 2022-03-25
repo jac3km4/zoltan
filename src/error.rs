@@ -6,14 +6,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("invalid typedef parameter {0}: {1}")]
-    InvalidCommentParam(&'static str, String),
-    #[error("unknown typedef parameter: {0}")]
-    UnknownCommentParam(String),
-    #[error("missing pattern parameter")]
-    MissingPattern,
-    #[error("failed to parse a typedef parameter: {0}")]
-    PegError(#[from] peg::error::ParseError<LineCol>),
+    #[error("invalid parameter in '{0}': {1}")]
+    TypedefParamError(String, ParamError),
     #[error("invalid rdata access at {0}")]
     InvalidAccess(usize),
     #[error("unresolved name {0}")]
@@ -40,7 +34,7 @@ impl Error {
                 let loc = files
                     .location(err.location.file, err.location.span.start)
                     .unwrap();
-                format!("at {}:{}: {}", loc.line, loc.column, err.data)
+                format!("at {}:{}: {}", loc.line.0 + 1, loc.column.0 + 1, err.data)
             })
             .collect::<Vec<_>>()
             .join("\n");
@@ -59,4 +53,16 @@ pub enum SymbolError {
     NotEnoughMatches(String, usize),
     #[error("count mismatch for {0} ({1})")]
     CountMismatch(String, usize),
+}
+
+#[derive(Debug, Error)]
+pub enum ParamError {
+    #[error("invalid parameter '{0}': {1}")]
+    InvalidParam(&'static str, String),
+    #[error("unknown parameter '{0}'")]
+    UnknownParam(String),
+    #[error("missing 'pattern' parameter")]
+    MissingPattern,
+    #[error("parse error in '{0}': {1}")]
+    ParseError(&'static str, peg::error::ParseError<LineCol>),
 }

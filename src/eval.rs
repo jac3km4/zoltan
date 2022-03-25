@@ -14,8 +14,8 @@ pub enum Expr {
 }
 
 impl Expr {
-    pub fn parse(str: &str) -> Result<Self, Error> {
-        Ok(expr::expr(str)?)
+    pub fn parse(str: &str) -> Result<Self, peg::error::ParseError<peg::str::LineCol>> {
+        expr::expr(str)
     }
 
     pub fn eval(&self, ctx: &EvalContext) -> Result<u64, Error> {

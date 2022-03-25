@@ -1,8 +1,6 @@
 use aho_corasick::AhoCorasick;
 use enum_as_inner::EnumAsInner;
 
-use crate::error::Error;
-
 #[derive(Debug, EnumAsInner)]
 pub enum PatItem {
     Byte(u8),
@@ -41,8 +39,8 @@ impl Pattern {
         }
     }
 
-    pub fn parse(str: &str) -> Result<Self, Error> {
-        Ok(pattern::pattern(str)?)
+    pub fn parse(str: &str) -> Result<Self, peg::error::ParseError<peg::str::LineCol>> {
+        pattern::pattern(str)
     }
 
     #[inline]
@@ -170,8 +168,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_valid_patterns() -> Result<(), Error> {
-        let pat = Pattern::parse("8B 0D ? ? BA 10")?;
+    fn parse_valid_patterns() {
+        let pat = Pattern::parse("8B 0D ? ? BA 10").unwrap();
         assert_matches!(pat.parts(), &[
             PatItem::Byte(0x8B),
             PatItem::Byte(0x0D),
@@ -181,7 +179,7 @@ mod tests {
             PatItem::Byte(0x10),
         ]);
 
-        let pat = Pattern::parse("8BF9E8??")?;
+        let pat = Pattern::parse("8BF9E8??").unwrap();
         assert_matches!(pat.parts(), &[
             PatItem::Byte(0x8B),
             PatItem::Byte(0xF9),
@@ -189,26 +187,24 @@ mod tests {
             PatItem::Any,
             PatItem::Any,
         ]);
-        Ok(())
     }
 
     #[test]
-    fn return_correct_longest_seq() -> Result<(), Error> {
-        let pat = Pattern::parse("8B ? 0D ? F9 5F 48 B8 ? BA 10")?;
+    fn return_correct_longest_seq() {
+        let pat = Pattern::parse("8B ? 0D ? F9 5F 48 B8 ? BA 10").unwrap();
         assert_matches!(pat.longest_byte_sequence(), &[
             PatItem::Byte(0xF9),
             PatItem::Byte(0x5F),
             PatItem::Byte(0x48),
             PatItem::Byte(0xB8)
         ]);
-        Ok(())
     }
 
     #[test]
-    fn match_valid_patterns() -> Result<(), Error> {
-        let pat1 = Pattern::parse("FD 98 07 ? ? 49 C5")?;
-        let pat2 = Pattern::parse("? BB 5E 83 F1 ? 49")?;
-        let pat3 = Pattern::parse("BA (match) 89 BF")?;
+    fn match_valid_patterns() {
+        let pat1 = Pattern::parse("FD 98 07 ? ? 49 C5").unwrap();
+        let pat2 = Pattern::parse("? BB 5E 83 F1 ? 49").unwrap();
+        let pat3 = Pattern::parse("BA (match) 89 BF").unwrap();
         let haystack = [
             0x9C, 0x0D, 0x1C, 0x53, 0x1D, 0x35, 0xFD, 0x98, 0x07, 0x10, 0x22, 0x49, 0xC5, 0xBB, 0x5E, 0x83,
             0xF1, 0xBF, 0x49, 0x8E, 0x78, 0x32, 0x17, 0xC1, 0x6F, 0xBA, 0x83, 0x5B, 0x5D, 0x83, 0x89, 0xBF,
@@ -218,17 +214,15 @@ mod tests {
             Match { pattern: 1, rva: 12 },
             Match { pattern: 2, rva: 25 },
         ]);
-        Ok(())
     }
 
     #[test]
-    fn return_correct_groups() -> Result<(), Error> {
-        let pat = Pattern::parse("BA CC (one) FF 89 BF (two) (three) 56")?;
+    fn return_correct_groups() {
+        let pat = Pattern::parse("BA CC (one) FF 89 BF (two) (three) 56").unwrap();
         assert_matches!(pat.groups().collect::<Vec<_>>().as_slice(), &[
             ("one", VarType::Rel, 2),
             ("two", VarType::Rel, 9),
             ("three", VarType::Rel, 13)
         ]);
-        Ok(())
     }
 }

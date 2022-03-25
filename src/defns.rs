@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::ops::Deref;
 use std::str::FromStr;
 
 use saltwater::codespan::LineIndex;
@@ -7,7 +8,7 @@ use saltwater::hir::Variable;
 use saltwater::types::FunctionType;
 use saltwater::{check_semantics, Opt, StorageClass};
 
-use crate::error::Error;
+use crate::error::{Error, ParamError};
 use crate::eval::Expr;
 use crate::patterns::Pattern;
 use crate::symbols::FunctionSymbol;
@@ -47,7 +48,8 @@ impl Definitions {
                 }
 
                 if !params.is_empty() {
-                    let func = Function::new(var.id.resolve_and_clone(), fun_typ.clone(), params)?;
+                    let func = Function::new(var.id.resolve_and_clone(), fun_typ.clone(), params)
+                        .map_err(|err| Error::TypedefParamError(var.id.resolve_and_clone(), err))?;
                     functions.push(func);
                 }
             }
@@ -72,14 +74,22 @@ pub struct Function {
 }
 
 impl Function {
-    fn new(name: String, typ: FunctionType, mut params: HashMap<&str, &str>) -> Result<Self, Error> {
-        let pattern = Pattern::parse(params.remove("pattern").ok_or(Error::MissingPattern)?)?;
+    fn new(name: String, typ: FunctionType, mut params: HashMap<&str, &str>) -> Result<Self, ParamError> {
+        let pattern = Pattern::parse(params.remove("pattern").ok_or(ParamError::MissingPattern)?)
+            .map_err(|err| ParamError::ParseError("pattern", err))?;
         let offset = params
             .remove("offset")
             .map(|str| parse_from_str(str, "offset"))
             .transpose()?;
-        let eval = params.remove("eval").map(Expr::parse).transpose()?;
+        let eval = params
+            .remove("eval")
+            .map(Expr::parse)
+            .transpose()
+            .map_err(|err| ParamError::ParseError("eval", err))?;
         let nth_entry_of = params.remove("nth").map(parse_index_specifier).transpose()?;
+        if let Some(str) = params.keys().next() {
+            return Err(ParamError::UnknownParam(str.deref().to_owned()));
+        }
         Ok(Self {
             name,
             typ,
@@ -110,20 +120,20 @@ fn parse_typedef_comment(line: &str) -> Option<(&str, &str)> {
     Some((key, val.trim()))
 }
 
-fn parse_index_specifier(str: &str) -> Result<(usize, usize), Error> {
+fn parse_index_specifier(str: &str) -> Result<(usize, usize), ParamError> {
     let (n, max) = str
         .split_once('/')
-        .ok_or_else(|| Error::InvalidCommentParam("nth", "Invalid format".to_string()))?;
+        .ok_or_else(|| ParamError::InvalidParam("nth", "invalid format".to_string()))?;
     Ok((
         parse_from_str(n.trim(), "nth")?,
         parse_from_str(max.trim(), "nth")?,
     ))
 }
 
-fn parse_from_str<F: FromStr>(str: &str, field: &'static str) -> Result<F, Error>
+fn parse_from_str<F: FromStr>(str: &str, field: &'static str) -> Result<F, ParamError>
 where
     F::Err: std::error::Error,
 {
     str.parse()
-        .map_err(|err: F::Err| Error::InvalidCommentParam(field, err.to_string()))
+        .map_err(|err: F::Err| ParamError::InvalidParam(field, err.to_string()))
 }
