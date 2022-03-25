@@ -55,6 +55,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
+name = "bpaf"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5444c3016c57b548d9e45e85cddaaa987a48449148f464ba4af854e95fb46a01"
+
+[[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -481,6 +487,7 @@ name = "zoltan"
 version = "0.1.0"
 dependencies = [
  "aho-corasick",
+ "bpaf",
  "enum-as-inner",
  "flexi_logger",
  "gimli",
