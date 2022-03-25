@@ -31,27 +31,30 @@ pub fn resolve(
     let mut errs = vec![];
     for (i, fun) in functions.into_iter().enumerate() {
         match match_map.get(&i).map(|vec| &vec[..]) {
-            Some([rva]) => {
-                let addr = resolve_address(&fun, data, *rva)?;
-                syms.push(fun.into_symbol(addr));
-            }
+            Some([rva]) => syms.push(resolve_symbol(fun, data, *rva)?),
             Some(rvas) => {
-                errs.push(SymbolError::MoreThanOneMatch(fun.name, rvas.len()));
+                if let Some((n, max)) = fun.nth_entry_of {
+                    match rvas.get(n) {
+                        Some(rva) if max == rvas.len() => syms.push(resolve_symbol(fun, data, *rva)?),
+                        Some(_) => errs.push(SymbolError::CountMismatch(fun.name, rvas.len())),
+                        None => errs.push(SymbolError::NotEnoughMatches(fun.name, rvas.len())),
+                    }
+                } else {
+                    errs.push(SymbolError::MoreThanOneMatch(fun.name, rvas.len()));
+                }
             }
-            None => {
-                errs.push(SymbolError::NoMatches(fun.name));
-            }
+            None => errs.push(SymbolError::NoMatches(fun.name)),
         }
     }
     Ok((syms, errs))
 }
 
-fn resolve_address(fun: &Function, data: &ExecutableData, rva: u64) -> Result<u64, Error> {
+fn resolve_symbol(fun: Function, data: &ExecutableData, rva: u64) -> Result<FunctionSymbol, Error> {
     let res = match &fun.eval {
         Some(expr) => expr.eval(&EvalContext::new(fun.pattern(), data, rva)?)?,
         None => data.text_offset() + (rva as i64 - fun.offset.unwrap_or(0) as i64) as u64,
     };
-    Ok(res)
+    Ok(fun.into_symbol(res))
 }
 
 pub fn generate<W: io::Write>(

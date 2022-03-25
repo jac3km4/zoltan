@@ -6,13 +6,13 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("invalid comment parameter {0}: {1}")]
+    #[error("invalid typedef parameter {0}: {1}")]
     InvalidCommentParam(&'static str, String),
-    #[error("unknown comment parameter: {0}")]
+    #[error("unknown typedef parameter: {0}")]
     UnknownCommentParam(String),
     #[error("missing pattern parameter")]
     MissingPattern,
-    #[error("parsing {0}")]
+    #[error("failed to parse a typedef parameter: {0}")]
     PegError(#[from] peg::error::ParseError<LineCol>),
     #[error("invalid rdata access at {0}")]
     InvalidAccess(usize),
@@ -55,4 +55,8 @@ pub enum SymbolError {
     MoreThanOneMatch(String, usize),
     #[error("no matches for {0}")]
     NoMatches(String),
+    #[error("not enough matches for {0} ({1})")]
+    NotEnoughMatches(String, usize),
+    #[error("count mismatch for {0} ({1})")]
+    CountMismatch(String, usize),
 }
