@@ -12,39 +12,46 @@ use saltwater::{get_str, InternedStr, StructType};
 
 use crate::defns::Function;
 use crate::error::{Error, SymbolError};
+use crate::eval::EvalContext;
+use crate::exe::ExecutableData;
 use crate::patterns;
 
 const DWARF_VERSION: u16 = 5;
 
 pub fn resolve(
     functions: Vec<Function>,
-    haystack: &[u8],
-    address_base: u64,
-) -> (Vec<FunctionSymbol>, Vec<SymbolError>) {
-    let mut match_map = HashMap::new();
-    for mat in patterns::multi_search(functions.iter().map(Function::pattern), haystack) {
-        match_map
-            .entry(mat.pattern)
-            .and_modify(|(_, count)| *count += 1)
-            .or_insert((mat.rva, 1usize));
+    data: &ExecutableData,
+) -> Result<(Vec<FunctionSymbol>, Vec<SymbolError>), Error> {
+    let mut match_map: HashMap<usize, Vec<u64>> = HashMap::new();
+    for mat in patterns::multi_search(functions.iter().map(Function::pattern), data.text()) {
+        match_map.entry(mat.pattern).or_default().push(mat.rva);
     }
 
     let mut syms = vec![];
     let mut errs = vec![];
     for (i, fun) in functions.into_iter().enumerate() {
-        match match_map.get(&i) {
-            Some((_, count)) if *count > 1 => {
-                errs.push(SymbolError::MoreThanOneMatch(fun.into_name(), *count));
+        match match_map.get(&i).map(|vec| &vec[..]) {
+            Some([rva]) => {
+                let addr = resolve_address(&fun, data, *rva)?;
+                syms.push(fun.into_symbol(addr));
             }
-            Some((rva, _)) => {
-                syms.push(fun.into_symbol(address_base + rva));
+            Some(rvas) => {
+                errs.push(SymbolError::MoreThanOneMatch(fun.name, rvas.len()));
             }
             None => {
-                errs.push(SymbolError::NoMatches(fun.into_name()));
+                errs.push(SymbolError::NoMatches(fun.name));
             }
         }
     }
-    (syms, errs)
+    Ok((syms, errs))
+}
+
+fn resolve_address(fun: &Function, data: &ExecutableData, rva: u64) -> Result<u64, Error> {
+    let res = match &fun.eval {
+        Some(expr) => expr.eval(&EvalContext::new(fun.pattern(), data, rva)?)?,
+        None => data.text_offset() + (rva as i64 - fun.offset.unwrap_or(0) as i64) as u64,
+    };
+    Ok(res)
 }
 
 pub fn generate<W: io::Write>(

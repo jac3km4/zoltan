@@ -8,6 +8,7 @@ thiserror = "1"
 enum-as-inner = "0.4"
 log = "0.4"
 aho-corasick = "0.7"
+peg = "0.8"
 
 [dependencies.flexi_logger]
 version = "0.22"

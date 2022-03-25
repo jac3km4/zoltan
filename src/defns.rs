@@ -1,6 +1,6 @@
+use std::collections::HashMap;
 use std::num::ParseIntError;
 
-use enum_as_inner::EnumAsInner;
 use saltwater::codespan::LineIndex;
 use saltwater::data::types::Type;
 use saltwater::hir::Variable;
@@ -8,6 +8,7 @@ use saltwater::types::FunctionType;
 use saltwater::{check_semantics, Opt, StorageClass};
 
 use crate::error::Error;
+use crate::eval::Expr;
 use crate::patterns::Pattern;
 use crate::symbols::FunctionSymbol;
 
@@ -23,7 +24,7 @@ impl Definitions {
 
         for decl in prog
             .result
-            .map_err(|errs| Error::from_compile_error(errs, &prog.files))?
+            .map_err(|errs| Error::from_compile_errors(errs, &prog.files))?
         {
             let var = decl.data.symbol.get();
             if let Variable {
@@ -34,12 +35,12 @@ impl Definitions {
             {
                 let file = decl.location.file;
                 let line = prog.files.line_index(file, decl.location.span.start);
-                let mut params = Vec::new();
+                let mut params = HashMap::new();
                 for li in (0..line.0).rev() {
                     let span = prog.files.line_span(file, LineIndex(li)).unwrap();
                     let slice = prog.files.source_slice(file, span).unwrap();
-                    if let Some(kv) = DefnParam::from_comment(slice) {
-                        params.push(kv?);
+                    if let Some((key, val)) = parse_typedef_comment(slice) {
+                        params.insert(key, val);
                     } else {
                         break;
                     }
@@ -62,24 +63,30 @@ impl Definitions {
 
 #[derive(Debug)]
 pub struct Function {
-    name: String,
     typ: FunctionType,
     pattern: Pattern,
-    offset: Option<i64>,
+    pub(crate) name: String,
+    pub(crate) offset: Option<i64>,
+    pub(crate) eval: Option<Expr>,
 }
 
 impl Function {
-    fn new(name: String, typ: FunctionType, params: Vec<DefnParam>) -> Result<Self, Error> {
-        let offset = params.iter().find_map(DefnParam::as_offset).cloned();
-        let pattern = params
-            .into_iter()
-            .find_map(|param| param.into_pattern().ok())
-            .ok_or(Error::MissingPattern)?;
+    fn new(name: String, typ: FunctionType, mut params: HashMap<&str, &str>) -> Result<Self, Error> {
+        let pattern = Pattern::parse(params.remove("pattern").ok_or(Error::MissingPattern)?)?;
+        let offset = params
+            .remove("offset")
+            .map(|str| {
+                str.parse()
+                    .map_err(|err: ParseIntError| Error::InvalidCommentParam("offset", err.to_string()))
+            })
+            .transpose()?;
+        let eval = params.remove("eval").map(Expr::parse).transpose()?;
         Ok(Self {
             name,
             typ,
             pattern,
             offset,
+            eval,
         })
     }
 
@@ -88,74 +95,17 @@ impl Function {
     }
 
     pub fn into_symbol(self, addr: u64) -> FunctionSymbol {
-        let addr = (addr as i64 - self.offset.unwrap_or(0)) as u64;
         FunctionSymbol::new(self.name, self.typ, addr)
     }
-
-    pub fn into_name(self) -> String {
-        self.name
-    }
 }
 
-#[derive(Debug, EnumAsInner)]
-enum DefnParam {
-    Pattern(Pattern),
-    Offset(i64),
-}
+fn parse_typedef_comment(line: &str) -> Option<(&str, &str)> {
+    let (key, val) = line
+        .trim_start()
+        .strip_prefix("///")?
+        .trim_start()
+        .strip_prefix('@')?
+        .split_once(' ')?;
 
-impl DefnParam {
-    fn from_key_val(key: &str, val: &str) -> Result<Self, Error> {
-        match key {
-            "pattern" => Ok(DefnParam::Pattern(Pattern::parse(val)?)),
-            "offset" => {
-                let offset = val
-                    .parse()
-                    .map_err(|err: ParseIntError| Error::InvalidCommentParam("offset", err.to_string()))?;
-                Ok(DefnParam::Offset(offset))
-            }
-            _ => Err(Error::UnknownCommentParam(key.to_owned())),
-        }
-    }
-
-    fn from_comment(line: &str) -> Option<Result<Self, Error>> {
-        let (key, val) = line
-            .trim_start()
-            .strip_prefix("///")?
-            .trim_start()
-            .strip_prefix('@')?
-            .split_once(' ')?;
-
-        Some(Self::from_key_val(key, val.trim()))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::assert_matches::assert_matches;
-
-    use super::*;
-
-    #[test]
-    fn parse_valid_defn_params() {
-        assert_matches!(
-            DefnParam::from_comment("/// @offset  1234"),
-            Some(Ok(DefnParam::Offset(1234)))
-        );
-        assert_matches!(
-            DefnParam::from_comment(" ///  @offset -10"),
-            Some(Ok(DefnParam::Offset(-10)))
-        );
-        assert_matches!(
-            DefnParam::from_comment("/// @pattern 45 EF 88"),
-            Some(Ok(DefnParam::Pattern(_)))
-        );
-    }
-
-    #[test]
-    fn reject_invalid_defn_param() {
-        assert_matches!(
-            DefnParam::from_comment(" ///  @flag test"),
-            Some(Err(Error::UnknownCommentParam(_)))
-        );
-    }
+    Some((key, val.trim()))
 }

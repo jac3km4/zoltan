@@ -1,22 +1,23 @@
 #![feature(slice_group_by)]
 #![feature(assert_matches)]
+#![feature(iter_advance_by)]
 use std::fs::File;
 use std::path::Path;
 
 use defns::Definitions;
 use flexi_logger::{LogSpecification, Logger};
-use object::{Object, ObjectSection};
 
 use crate::error::Error;
+use crate::exe::ExecutableData;
 use crate::symbols::ObjectProperties;
 
 pub mod codegen;
 pub mod defns;
 pub mod error;
+pub mod eval;
+pub mod exe;
 pub mod patterns;
 pub mod symbols;
-
-const CODE_SECTION: &str = ".text";
 
 fn main() {
     Logger::with(LogSpecification::info()).start().unwrap();
@@ -44,27 +45,22 @@ fn run(source_path: &Path, exe_path: &Path, out_path: &Path) -> Result<(), Error
 
     let exe_bytes = std::fs::read(exe_path)?;
     let exe = object::read::File::parse(&*exe_bytes)?;
-    let code = exe.section_by_name(CODE_SECTION);
-
-    if let Some(code) = code {
-        let props = ObjectProperties::from_object(&exe);
-        let (syms, errors) = symbols::resolve(definitions.into_functions(), code.data()?, code.address());
-        log::info!("Found {} symbols", syms.len());
-        if !errors.is_empty() {
-            let message = errors
-                .iter()
-                .map(|err| err.to_string())
-                .collect::<Vec<_>>()
-                .join("\n");
-            log::warn!("Some of the patterns have failed:\n{message}",);
-        }
-
-        codegen::write_header(&syms, File::create(out_path.with_extension("h"))?)?;
-        symbols::generate(syms, props, File::create(out_path)?)?;
-
-        log::info!("Written the debug symbols to {}", out_path.display());
-    } else {
-        log::error!("Code section missing from the executable, nothing to do")
+    let data = ExecutableData::new(&exe)?;
+    let (syms, errors) = symbols::resolve(definitions.into_functions(), &data)?;
+    log::info!("Found {} symbols", syms.len());
+    if !errors.is_empty() {
+        let message = errors
+            .iter()
+            .map(|err| err.to_string())
+            .collect::<Vec<_>>()
+            .join("\n");
+        log::warn!("Some of the patterns have failed:\n{message}",);
     }
+
+    codegen::write_header(&syms, File::create(out_path.with_extension("h"))?)?;
+    let props = ObjectProperties::from_object(&exe);
+    symbols::generate(syms, props, File::create(out_path)?)?;
+
+    log::info!("Written the debug symbols to {}", out_path.display());
     Ok(())
 }

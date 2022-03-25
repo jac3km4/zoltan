@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::io;
 
+use peg::str::LineCol;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -11,6 +12,12 @@ pub enum Error {
     UnknownCommentParam(String),
     #[error("missing pattern parameter")]
     MissingPattern,
+    #[error("parsing {0}")]
+    PegError(#[from] peg::error::ParseError<LineCol>),
+    #[error("invalid rdata access at {0}")]
+    InvalidAccess(usize),
+    #[error("unresolved name {0}")]
+    UnresolvedName(String),
     #[error("compile errors:\n{0}")]
     CompileError(String),
     #[error("object file error: {0}")]
@@ -19,12 +26,14 @@ pub enum Error {
     DwarfError(#[from] gimli::write::Error),
     #[error("I/O error: {0}")]
     IoError(#[from] io::Error),
+    #[error("missing {0} section")]
+    MissingSection(&'static str),
     #[error("{0}")]
     OtherError(#[from] Box<dyn std::error::Error>),
 }
 
 impl Error {
-    pub fn from_compile_error(errs: VecDeque<saltwater::CompileError>, files: &saltwater::Files) -> Self {
+    pub fn from_compile_errors(errs: VecDeque<saltwater::CompileError>, files: &saltwater::Files) -> Self {
         let message = errs
             .iter()
             .map(|err| {
