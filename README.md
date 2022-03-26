@@ -5,12 +5,12 @@ It can generate debug symbols from a combination of C source code annotated with
 ### usage
 The first step is to define a function typedef in C with a byte pattern (similar to IDA), you can read more about it [here](#patterns).
 Your C file will get parsed and any types you refer to in your typedefs (structs, enums etc.) can be stored in a debug file together with your functions by using the `--dwarf-output <DWARF>` [CLI option](#cli).
-When zoltan runs, it searches for your patterns in an executable provided by you and then uses the resolved function addresses to generate debug symbols that are compatible with your executable.
+When Zoltan runs, it searches for your patterns in an executable provided by you and then uses the resolved function addresses to generate debug symbols that are compatible with your executable.
 The underlying pattern search uses [a very fast SIMD-accelerated multi-string search algorithm](https://github.com/BurntSushi/aho-corasick), so it should generally complete very quickly.
 
 Once you have your header file ready you can invoke Zoltan through command-line like this:
 ```powershell
-zoltan '.\types.h' 'C:\Games\ELEX2\system\ELEX2.exe' --dward-output '.\symbols'
+zoltan '.\types.h' 'C:\Games\ELEX2\system\ELEX2.exe' --dwarf-output '.\symbols'
 ```
 This command will write the debug symbols to a file called `symbols`. Zoltan uses the DWARF format to encode them. The resulting symbol file can be loaded into RE tools like IDA for example (Edit->Plugins->Load DWARF file).
 Once you do this, you should be able to enjoy having all of your functions and data types visible in the decompiled code/instruction list.
