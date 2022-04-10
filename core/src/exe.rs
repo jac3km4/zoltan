@@ -8,6 +8,7 @@ const RDATA_SECTION: &str = ".rdata";
 pub struct ExecutableData<'a> {
     text: &'a [u8],
     rdata: &'a [u8],
+    image_base: u64,
     rdata_offset: u64,
     text_offset: u64,
 }
@@ -24,6 +25,7 @@ impl<'a> ExecutableData<'a> {
         let res = Self {
             text: text.data()?,
             rdata: rdata.data()?,
+            image_base: exe.relative_address_base(),
             rdata_offset: rdata.address(),
             text_offset: text.address(),
         };
@@ -60,6 +62,14 @@ impl<'a> ExecutableData<'a> {
 
     pub fn text_offset(&'a self) -> u64 {
         self.text_offset
+    }
+
+    pub fn image_base(&'a self) -> u64 {
+        self.image_base
+    }
+
+    pub fn text_offset_from_base(&'a self) -> u64 {
+        self.text_offset - self.image_base
     }
 }
 
