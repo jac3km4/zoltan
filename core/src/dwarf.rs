@@ -34,7 +34,7 @@ where
     let mut dwarf = DwarfUnit::new(encoding);
     let mut writer = DwarfWriter::new(&mut dwarf.unit, type_info);
     for sym in symbols {
-        writer.define_function_symbol(sym);
+        writer.define_function_symbol(sym, props.image_base());
     }
 
     // TODO: handle endianess here
@@ -342,14 +342,14 @@ impl<'a> DwarfWriter<'a> {
         id
     }
 
-    fn define_function_symbol(&mut self, fun: FunctionSymbol) {
+    fn define_function_symbol(&mut self, fun: FunctionSymbol, image_base: u64) {
         let id = self.unit.add(self.unit.root(), gimli::DW_TAG_subprogram);
         let ret_type_id = self.get_type(&fun.function_type().return_type);
 
         let entry = self.unit.get_mut(id);
         let name = AttributeValue::String(fun.name().as_bytes().to_vec());
         entry.set(gimli::DW_AT_name, name);
-        let pc = AttributeValue::Address(Address::Constant(fun.addr()));
+        let pc = AttributeValue::Address(Address::Constant(image_base + fun.addr()));
         entry.set(gimli::DW_AT_low_pc, pc);
         entry.set(gimli::DW_AT_type, AttributeValue::UnitRef(ret_type_id));
 

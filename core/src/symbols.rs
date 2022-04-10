@@ -23,16 +23,16 @@ pub fn resolve_in_exe(
     let mut errs = vec![];
     for (i, fun) in specs.into_iter().enumerate() {
         match match_map.get(&i).map(|vec| &vec[..]) {
-            Some([rva]) => syms.push(resolve_symbol(fun, exe, *rva)?),
-            Some(rvas) => {
+            Some([addr]) => syms.push(resolve_symbol(fun, exe, *addr)?),
+            Some(addrs) => {
                 if let Some((n, max)) = fun.nth_entry_of {
-                    match rvas.get(n) {
-                        Some(rva) if max == rvas.len() => syms.push(resolve_symbol(fun, exe, *rva)?),
-                        Some(_) => errs.push(SymbolError::CountMismatch(fun.name, rvas.len())),
-                        None => errs.push(SymbolError::NotEnoughMatches(fun.name, rvas.len())),
+                    match addrs.get(n) {
+                        Some(rva) if max == addrs.len() => syms.push(resolve_symbol(fun, exe, *rva)?),
+                        Some(_) => errs.push(SymbolError::CountMismatch(fun.name, addrs.len())),
+                        None => errs.push(SymbolError::NotEnoughMatches(fun.name, addrs.len())),
                     }
                 } else {
-                    errs.push(SymbolError::MoreThanOneMatch(fun.name, rvas.len()));
+                    errs.push(SymbolError::MoreThanOneMatch(fun.name, addrs.len()));
                 }
             }
             None => errs.push(SymbolError::NoMatches(fun.name)),
@@ -53,15 +53,15 @@ fn resolve_symbol(spec: FunctionSpec, data: &ExecutableData, rva: u64) -> Result
 pub struct FunctionSymbol {
     name: Ustr,
     function_type: Rc<FunctionType>,
-    addr: u64,
+    rva: u64,
 }
 
 impl FunctionSymbol {
-    fn new(name: Ustr, function_type: Rc<FunctionType>, addr: u64) -> Self {
+    fn new(name: Ustr, function_type: Rc<FunctionType>, rva: u64) -> Self {
         Self {
             name,
             function_type,
-            addr,
+            rva,
         }
     }
 
@@ -74,6 +74,6 @@ impl FunctionSymbol {
     }
 
     pub fn addr(&self) -> u64 {
-        self.addr
+        self.rva
     }
 }

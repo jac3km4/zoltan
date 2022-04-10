@@ -77,13 +77,15 @@ impl<'a> ExecutableData<'a> {
 pub struct ExeProperties {
     architecture: Architecture,
     endianess: Endianness,
+    image_base: u64,
 }
 
 impl ExeProperties {
-    pub fn from_object<'a: 'b, 'b, O: Object<'a, 'b>>(obj: &O) -> Self {
+    pub fn from_object<'a: 'b, 'b, O: Object<'a, 'b>>(obj: &'b O) -> Self {
         Self {
             architecture: obj.architecture(),
             endianess: obj.endianness(),
+            image_base: obj.relative_address_base(),
         }
     }
 
@@ -105,5 +107,9 @@ impl ExeProperties {
             Architecture::X86_64_X32 => 4,
             _ => unimplemented!(),
         }
+    }
+
+    pub fn image_base(&self) -> u64 {
+        self.image_base
     }
 }
