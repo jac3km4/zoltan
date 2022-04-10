@@ -28,11 +28,13 @@ impl TypeResolver {
         let name: Ustr = self.generate_type_name(entity);
 
         match entity.get_kind() {
-            clang::EntityKind::StructDecl | clang::EntityKind::ClassDecl => {
+            clang::EntityKind::StructDecl
+            | clang::EntityKind::ClassDecl
+            | clang::EntityKind::ClassTemplate => {
                 if !self.structs.contains_key(&name.into()) {
                     self.structs.insert(name.into(), StructType::stub(name));
 
-                    let size = entity.get_type().unwrap().get_sizeof().ok();
+                    let size = entity.get_type().and_then(|t| t.get_sizeof().ok());
                     let res = if let Some(template) = entity.get_template() {
                         self.resolve_struct(name, template, size)?
                     } else {
@@ -65,10 +67,15 @@ impl TypeResolver {
         // populate template arguments if available
         if let Some(args) = typ.get_template_argument_types() {
             self.local_types.push_layer();
+
             let decl = typ.get_declaration().unwrap();
-            for (ent, typ) in decl
-                .get_template()
-                .unwrap()
+            let template = if decl.get_kind() == clang::EntityKind::ClassTemplate {
+                decl
+            } else {
+                decl.get_template().unwrap()
+            };
+
+            for (ent, typ) in template
                 .get_children()
                 .iter()
                 .take_while(|ent| ent.get_kind() == clang::EntityKind::TemplateTypeParameter)
@@ -244,7 +251,7 @@ impl TypeResolver {
 
     fn generate_type_name(&mut self, entity: clang::Entity) -> Ustr {
         let mut cur = entity;
-        let mut full_name = entity.get_name().unwrap_or_else(|| self.allocate_name());
+        let mut full_name = entity.get_display_name().unwrap_or_else(|| self.allocate_name());
 
         while let Some(parent) = cur.get_semantic_parent() {
             if parent.get_kind() != clang::EntityKind::TranslationUnit {
