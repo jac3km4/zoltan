@@ -115,7 +115,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 [[package]]
 name = "clang"
 version = "1.0.3"
-source = "git+https://github.com/jac3km4/clang-rs?branch=borrowed-strings#a0f0c318d1f40d45779006fabf830f59cc8e095e"
+source = "git+https://github.com/jac3km4/clang-rs?branch=borrowed-strings#c7b7f3fd99c0efae5d6b29337d98587340e592ce"
 dependencies = [
  "clang-sys",
  "libc",

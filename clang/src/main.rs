@@ -67,10 +67,10 @@ fn run(opts: &Opts) -> Result<()> {
 
     let mut specs = vec![];
     for ent in entities {
-        if let Some(comment) = ent.get_comment() {
+        if let Some(comment) = ent.get_comment_raw() {
             if let Type::Function(typ) = resolver.resolve_type(ent.get_type().unwrap())? {
                 let name = ent.get_name_raw().unwrap().as_str().into();
-                if let Some(spec) = FunctionSpec::new(name, typ, comment.lines()) {
+                if let Some(spec) = FunctionSpec::new(name, typ, comment.as_str().lines()) {
                     specs.push(spec?);
                 }
             }
