@@ -99,4 +99,4 @@ There are two frontends available:
             winget install llvm
             $env:PATH += ";C:\Program Files\LLVM\bin"
             ```
-    - allow the use of C++ `using` type aliases instead of typedefs
+    - allows the use of C++ `using` type aliases instead of typedefs
