@@ -57,7 +57,7 @@ fn run(opts: &Opts) -> Result<()> {
             .any(|file| file.get_path() == opts.source_path);
 
         match ent.get_kind() {
-            EntityKind::TypedefDecl if is_project_file => {
+            EntityKind::TypedefDecl | EntityKind::TypeAliasDecl if is_project_file => {
                 entities.push(ent);
                 EntityVisitResult::Continue
             }
