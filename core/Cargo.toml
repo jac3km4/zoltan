@@ -14,7 +14,7 @@ aho-corasick = "0.7"
 peg = "0.8"
 ustr = "0.8"
 derive_more = "0.99"
-bpaf = "0.3"
+bpaf = "0.4"
 auto_enums = "0.7"
 
 [dependencies.gimli]
