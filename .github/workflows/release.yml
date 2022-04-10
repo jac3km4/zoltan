@@ -29,12 +29,21 @@ jobs:
           command: build
           args: --release
       - run: mkdir staging
-      - name: Upload the binary
+      - name: Upload the saltwater binary
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./target/release/zoltan.exe
-          asset_name: zoltan.exe
+          asset_path: ./target/release/zoltan-saltwater.exe
+          asset_name: zoltan-saltwater.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
+      - name: Upload the clang binary
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./target/release/zoltan-clang.exe
+          asset_name: zoltan-clang.exe
           asset_content_type: application/vnd.microsoft.portable-executable

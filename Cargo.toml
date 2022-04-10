@@ -1,32 +1,6 @@
-[package]
-name = "zoltan"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-thiserror = "1"
-enum-as-inner = "0.4"
-log = "0.4"
-bpaf = "0.3"
-aho-corasick = "0.7"
-peg = "0.8"
-
-[dependencies.flexi_logger]
-version = "0.22"
-default-features = false
-features = ["colors"]
-
-[dependencies.gimli]
-version = "0.26"
-default-features = false
-features = ["read", "write", "std"]
-
-[dependencies.object]
-version = "0.28"
-default-features = false
-features = ["read_core", "write_std", "elf", "pe"]
-
-[dependencies.saltwater]
-git = "https://github.com/jac3km4/saltwater"
-rev = "v0.11.0-custom"
-package = "saltwater-parser"
+[workspace]
+members = [
+  "core",
+  "saltwater",
+  "clang"
+]

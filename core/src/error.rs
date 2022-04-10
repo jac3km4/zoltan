@@ -1,13 +1,15 @@
-use std::collections::VecDeque;
 use std::io;
 
 use peg::str::LineCol;
 use thiserror::Error;
+use ustr::Ustr;
+
+pub type Result<A, E = Error> = std::result::Result<A, E>;
 
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("invalid parameter in '{0}': {1}")]
-    TypedefParamError(String, ParamError),
+    TypedefParamError(Ustr, ParamError),
     #[error("invalid rdata access at {0}")]
     InvalidAccess(usize),
     #[error("unresolved name {0}")]
@@ -26,33 +28,16 @@ pub enum Error {
     OtherError(#[from] Box<dyn std::error::Error>),
 }
 
-impl Error {
-    pub fn from_compile_errors(errs: VecDeque<saltwater::CompileError>, files: &saltwater::Files) -> Self {
-        let message = errs
-            .iter()
-            .map(|err| {
-                let loc = files
-                    .location(err.location.file, err.location.span.start)
-                    .unwrap();
-                format!("at {}:{}: {}", loc.line.0 + 1, loc.column.0 + 1, err.data)
-            })
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        Self::CompileError(message)
-    }
-}
-
 #[derive(Debug, Error)]
 pub enum SymbolError {
     #[error("too many matches for {0} ({1})")]
-    MoreThanOneMatch(String, usize),
+    MoreThanOneMatch(Ustr, usize),
     #[error("no matches for {0}")]
-    NoMatches(String),
+    NoMatches(Ustr),
     #[error("not enough matches for {0} ({1})")]
-    NotEnoughMatches(String, usize),
+    NotEnoughMatches(Ustr, usize),
     #[error("count mismatch for {0} ({1})")]
-    CountMismatch(String, usize),
+    CountMismatch(Ustr, usize),
 }
 
 #[derive(Debug, Error)]

@@ -1,10 +1,10 @@
 ## zoltan
 The goal of this project is to make it easy to generate debug symbols and header files for reverse engineering on the fly.
-It can generate debug symbols from a combination of C source code annotated with patterns and executable binaries.
+It can generate debug symbols from a combination of C/C++ source code annotated with patterns and executable binaries.
 
 ### usage
-The first step is to define a function typedef in C with a byte pattern (similar to IDA), you can read more about it [here](#patterns).
-Your C file will get parsed and any types you refer to in your typedefs (structs, enums etc.) can be stored in a debug file together with your functions by using the `--dwarf-output <DWARF>` [CLI option](#cli).
+The first step is to define a function typedef with a byte pattern (similar to IDA), you can read more about it [here](#patterns).
+Your C/C++ file with typedefs will get parsed and any types you refer to (structs, enums etc.) can be stored in a debug file together with your functions by using the `--dwarf-output <DWARF>` [CLI option](#cli).
 When Zoltan runs, it searches for your patterns in an executable provided by you and then uses the resolved function addresses to generate debug symbols that are compatible with your executable.
 The underlying pattern search uses [a very fast SIMD-accelerated multi-string search algorithm](https://github.com/BurntSushi/aho-corasick), so it should generally complete very quickly.
 
@@ -80,3 +80,19 @@ Combined with your typedefs you can use them to invoke these functions at runtim
 ```C
 ((get_player*)GET_PLAYER_ADDR)()
 ```
+
+### frontends
+There are two frontends available:
+- zoltan-saltwater
+    - comes with a C compiler written in pure Rust ([saltwater](https://github.com/jac3km4/saltwater)), no external dependencies
+    - very fast, good for prototyping
+    - cannot compile C++
+- zoltan-clang
+    - uses libclang, so it can be used against complex C++ codebases leveraging modern standards
+    - can be relatively slow because of the Clang parser
+    - requires libclang set up locally
+        - on recent versions of windows you can do
+            ```powershell
+            winget install llvm
+            $env:PATH += ";C:\Program Files\LLVM\bin"
+            ```

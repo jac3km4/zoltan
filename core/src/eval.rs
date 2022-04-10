@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use crate::error::Error;
+use crate::error::{Error, Result};
 use crate::exe::ExecutableData;
 use crate::patterns::{Pattern, VarType};
+use crate::types::POINTER_SIZE;
 
 #[derive(Debug)]
 pub enum Expr {
@@ -18,13 +19,13 @@ impl Expr {
         expr::expr(str)
     }
 
-    pub fn eval(&self, ctx: &EvalContext) -> Result<u64, Error> {
+    pub fn eval(&self, ctx: &EvalContext) -> Result<u64> {
         match self {
             Expr::Deref(expr) => ctx.data.resolve_rel_rdata(expr.eval(ctx)?),
             Expr::Add(lhs, rhs) => Ok(lhs.eval(ctx)? + rhs.eval(ctx)?),
             Expr::Sub(lhs, rhs) => Ok(lhs.eval(ctx)? - rhs.eval(ctx)?),
             Expr::Ident(name) => ctx.get_var(name),
-            Expr::Int(i) => Ok(*i * 8),
+            Expr::Int(i) => Ok(*i * POINTER_SIZE as u64),
         }
     }
 }
@@ -35,7 +36,7 @@ pub struct EvalContext<'a> {
 }
 
 impl<'a> EvalContext<'a> {
-    pub fn new(pattern: &'a Pattern, data: &'a ExecutableData, rva: u64) -> Result<Self, Error> {
+    pub fn new(pattern: &'a Pattern, data: &'a ExecutableData, rva: u64) -> Result<Self> {
         let mut vars = HashMap::new();
         for (key, typ, offset) in pattern.groups() {
             let abs = match typ {
@@ -47,7 +48,7 @@ impl<'a> EvalContext<'a> {
         Ok(instance)
     }
 
-    fn get_var(&self, name: &str) -> Result<u64, Error> {
+    fn get_var(&self, name: &str) -> Result<u64> {
         self.vars
             .get(name)
             .cloned()
