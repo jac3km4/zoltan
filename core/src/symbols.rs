@@ -73,7 +73,7 @@ impl FunctionSymbol {
         &self.function_type
     }
 
-    pub fn addr(&self) -> u64 {
+    pub fn rva(&self) -> u64 {
         self.rva
     }
 }

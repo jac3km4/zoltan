@@ -14,7 +14,7 @@ pub fn write_c_header<W: Write>(mut output: W, symbols: &[FunctionSymbol]) -> Re
             output,
             "#define {}_ADDR 0x{:X}",
             symbol.name().to_uppercase(),
-            symbol.addr()
+            symbol.rva()
         )?;
     }
 
@@ -28,7 +28,7 @@ pub fn write_rust_header<W: Write>(mut output: W, symbols: &[FunctionSymbol]) ->
             output,
             "const {}_ADDR: usize = 0x{:X};",
             symbol.name().to_uppercase(),
-            symbol.addr()
+            symbol.rva()
         )?;
     }
 

@@ -349,7 +349,7 @@ impl<'a> DwarfWriter<'a> {
         let entry = self.unit.get_mut(id);
         let name = AttributeValue::String(fun.name().as_bytes().to_vec());
         entry.set(gimli::DW_AT_name, name);
-        let pc = AttributeValue::Address(Address::Constant(image_base + fun.addr()));
+        let pc = AttributeValue::Address(Address::Constant(image_base + fun.rva()));
         entry.set(gimli::DW_AT_low_pc, pc);
         entry.set(gimli::DW_AT_type, AttributeValue::UnitRef(ret_type_id));
 
