@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 thiserror = "1"
 log = "0.4"
-clang = { version = "1.0", features = ["clang_10_0"] }
 quickscope = "0.2"
 
 [dependencies.zoltan]
@@ -16,3 +15,8 @@ path = "../core"
 version = "0.22"
 default-features = false
 features = ["colors"]
+
+[dependencies.clang]
+git = "https://github.com/jac3km4/clang-rs"
+branch = "borrowed-strings"
+features = ["clang_10_0"]

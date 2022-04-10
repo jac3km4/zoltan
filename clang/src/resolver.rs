@@ -83,7 +83,8 @@ impl TypeResolver {
             {
                 if let Some(typ) = typ {
                     let typ = self.resolve_type(*typ)?;
-                    self.local_types.define(ent.get_name().unwrap().into(), typ);
+                    self.local_types
+                        .define(ent.get_name_raw().unwrap().as_str().into(), typ);
                 }
             }
         }
@@ -170,7 +171,7 @@ impl TypeResolver {
         for child in children {
             match child.get_kind() {
                 clang::EntityKind::FieldDecl => {
-                    let name = child.get_name().unwrap_or_else(|| self.allocate_name()).into();
+                    let name = self.get_entity_name(child);
                     let typ = self.resolve_type(child.get_type().unwrap())?;
                     let bit_offset = child.get_offset_of_field().ok();
                     members.push(DataMember {
@@ -181,7 +182,7 @@ impl TypeResolver {
                     })
                 }
                 clang::EntityKind::Method | clang::EntityKind::Destructor if child.is_virtual_method() => {
-                    let name = child.get_name().unwrap_or_else(|| self.allocate_name()).into();
+                    let name = self.get_entity_name(child);
                     if let Type::Function(typ) = self.resolve_type(child.get_type().unwrap())? {
                         virtual_methods.push(Method {
                             name,
@@ -207,7 +208,7 @@ impl TypeResolver {
 
         for child in children {
             if child.get_kind() == clang::EntityKind::EnumConstantDecl {
-                let name = child.get_name().unwrap_or_else(|| self.allocate_name()).into();
+                let name = self.get_entity_name(child);
                 let (value, _) = child.get_enum_constant_value().unwrap();
                 members.push(EnumMember { name, value });
             }
@@ -223,7 +224,7 @@ impl TypeResolver {
 
         for child in children {
             if child.get_kind() == clang::EntityKind::FieldDecl {
-                let name = child.get_name().unwrap_or_else(|| self.allocate_name()).into();
+                let name = self.get_entity_name(child);
                 let typ = self.resolve_type(child.get_type().unwrap())?;
                 let bit_offset = child.get_offset_of_field().ok();
                 members.push(DataMember {
@@ -263,6 +264,13 @@ impl TypeResolver {
         }
 
         full_name.into()
+    }
+
+    fn get_entity_name(&mut self, entity: clang::Entity) -> Ustr {
+        entity
+            .get_name_raw()
+            .map(|str| str.as_str().into())
+            .unwrap_or_else(|| self.allocate_name().into())
     }
 
     fn allocate_name(&mut self) -> String {

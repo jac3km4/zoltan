@@ -69,7 +69,7 @@ fn run(opts: &Opts) -> Result<()> {
     for ent in entities {
         if let Some(comment) = ent.get_comment() {
             if let Type::Function(typ) = resolver.resolve_type(ent.get_type().unwrap())? {
-                let name = ent.get_name().unwrap().into();
+                let name = ent.get_name_raw().unwrap().as_str().into();
                 if let Some(spec) = FunctionSpec::new(name, typ, comment.lines()) {
                     specs.push(spec?);
                 }

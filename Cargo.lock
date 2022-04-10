@@ -115,8 +115,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 [[package]]
 name = "clang"
 version = "1.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34c6913be3a1c94f52fb975cdec7ef5a7b69de10a55de66dcbc30d7046b85fa1"
+source = "git+https://github.com/jac3km4/clang-rs?branch=borrowed-strings#a0f0c318d1f40d45779006fabf830f59cc8e095e"
 dependencies = [
  "clang-sys",
  "libc",
