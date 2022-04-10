@@ -1,36 +1,39 @@
-## zoltan
+# zoltan
 The goal of this project is to make it easy to generate debug symbols and header files for reverse engineering on the fly.
 It can generate debug symbols from a combination of C/C++ source code annotated with patterns and executable binaries.
 
-### usage
-The first step is to define a function typedef with a byte pattern (similar to IDA), you can read more about it [here](#patterns).
-Your C/C++ file with typedefs will get parsed and any types you refer to (structs, enums etc.) can be stored in a debug file together with your functions by using the `--dwarf-output <DWARF>` [CLI option](#cli).
+## usage
+The first step is to define a C/C++ function typedef with a byte pattern (similar to IDA), you can read more about it [here](#patterns).
+The source file containing your typedefs will get parsed and any types you refer to (structs, enums etc.) can be stored in a debug file together with your functions by using the `--dwarf-output <DWARF>` [CLI option](#cli).
 When Zoltan runs, it searches for your patterns in an executable provided by you and then uses the resolved function addresses to generate debug symbols that are compatible with your executable.
 The underlying pattern search uses [a very fast SIMD-accelerated multi-string search algorithm](https://github.com/BurntSushi/aho-corasick), so it should generally complete very quickly.
 
 Once you have your header file ready you can invoke Zoltan through command-line like this:
 ```powershell
-zoltan '.\types.h' 'C:\Games\ELEX2\system\ELEX2.exe' --dwarf-output '.\symbols'
+zoltan-clang.exe '.\types.hpp' 'C:\Games\ELEX2\system\ELEX2.exe' -f 'std=c++20' --dwarf-output '.\dbg-symbols'
 ```
-This command will write the debug symbols to a file called `symbols`. Zoltan uses the DWARF format to encode them. The resulting symbol file can be loaded into RE tools like IDA for example (Edit->Plugins->Load DWARF file).
+This command will write the debug symbols to a file called `dbg-symbols`. Zoltan uses the DWARF format to encode them. The resulting symbol file can be loaded into RE tools like IDA for example (Edit->Plugins->Load DWARF file).
 Once you do this, you should be able to enjoy having all of your functions and data types visible in the decompiled code/instruction list.
 
-### cli
-```
-Zoltan
+The example above uses the clang frontend, you can read about other frontends [here](#frontends).
 
-Usage: <C_SOURCE> <EXE> [--dwarf-output DWARF] [--c-output C] [--rust-output RUST]
+## cli
+```
+Zoltan Clang frontend for C/C++
+
+Usage: <SOURCE> <EXE> [-o DWARF] [--c-output C] [--rust-output RUST] -f FLAGS...
 
 Available options:
-        --dwarf-output <DWARF>  DWARF file to write
-        --c-output <C>          C header with offsets to write
-        --rust-output <RUST>    Rust file with offsets to write
-    -h, --help                  Prints help information
+    -o, --dwarf-output <DWARF>   DWARF file to write
+        --c-output <C>           C header with offsets to write
+        --rust-output <RUST>     Rust file with offsets to write
+    -f, --compiler-flag <FLAGS>  Flags to pass to the compiler
+    -h, --help                   Prints help information
 ```
 
-### patterns
-The patterns need to be written in comments prefixed by triple `/` immediately followed by a function typedef.
-Zoltan supports standar IDA-style paterns:
+## patterns
+The patterns need to be written in comments prefixed by triple '`/`' immediately followed by a function typedef.
+Zoltan supports standard IDA-style paterns:
 ```C
 // defines a pattern that matches function prologue exactly
 /// @pattern 48 83 EC 30 48 8B 09 41 8B F1 41 8B E8 48 8B DA 48 85 C9 74 65
@@ -66,7 +69,7 @@ The @eval parameter accepts expressions, giving you the flexibility to do things
 typedef char* get_name(struct Object* npc);
 ```
 
-### generating headers
+## generating headers
 Zoltan can also generate headers with offsets of the resolved functions. You can do it using the `--c-output` and `--rust-output` options.
 The generated files look like this:
 ```C
@@ -81,7 +84,7 @@ Combined with your typedefs you can use them to invoke these functions at runtim
 ((get_player*)GET_PLAYER_ADDR)()
 ```
 
-### frontends
+## frontends
 There are two frontends available:
 - zoltan-saltwater
     - comes with a C compiler written in pure Rust ([saltwater](https://github.com/jac3km4/saltwater)), no external dependencies
