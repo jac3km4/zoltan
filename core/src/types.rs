@@ -155,13 +155,19 @@ impl StructType {
         }
     }
 
-    pub fn has_virtual_methods(&self, types: &TypeInfo) -> bool {
+    pub fn has_direct_virtual_methods(&self) -> bool {
         !self.virtual_methods.is_empty()
-            || self
-                .base
-                .and_then(|id| types.structs.get(&id))
-                .iter()
-                .any(|typ| typ.has_virtual_methods(types))
+    }
+
+    pub fn has_indirect_virtual_methods(&self, types: &TypeInfo) -> bool {
+        self.base
+            .and_then(|id| types.structs.get(&id))
+            .iter()
+            .any(|typ| typ.has_virtual_methods(types))
+    }
+
+    pub fn has_virtual_methods(&self, types: &TypeInfo) -> bool {
+        self.has_direct_virtual_methods() || self.has_indirect_virtual_methods(types)
     }
 
     #[auto_enum(Iterator)]

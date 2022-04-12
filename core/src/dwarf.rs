@@ -57,6 +57,7 @@ struct DwarfWriter<'a> {
     unit: &'a mut Unit,
     types: &'a TypeInfo,
     cache: HashMap<Cow<'static, str>, UnitEntryId>,
+    vtables: HashMap<StructId, UnitEntryId>,
 }
 
 impl<'a> DwarfWriter<'a> {
@@ -65,6 +66,7 @@ impl<'a> DwarfWriter<'a> {
             unit,
             types: info,
             cache: HashMap::new(),
+            vtables: HashMap::new(),
         }
     }
 
@@ -171,25 +173,35 @@ impl<'a> DwarfWriter<'a> {
             entry.set(gimli::DW_AT_byte_size, AttributeValue::Data8(size as u64));
         }
 
+        if let Some(base) = struct_.base {
+            let base_ty = self.get_type(&Type::Struct(base));
+            let inherit_id = self.unit.add(id, gimli::DW_TAG_inheritance);
+            let inherit_entry = self.unit.get_mut(inherit_id);
+            inherit_entry.set(gimli::DW_AT_type, AttributeValue::UnitRef(base_ty));
+            inherit_entry.set(gimli::DW_AT_data_member_location, AttributeValue::Data8(0));
+        }
+
         let mut offset = 0u64;
 
         if struct_.has_virtual_methods(self.types) {
             let vtable_id = self.define_vtable(struct_);
-            let this_pointer_id = self.unit.add(id, gimli::DW_TAG_pointer_type);
-            let this_pointer = self.unit.get_mut(this_pointer_id);
-            this_pointer.set(gimli::DW_AT_type, AttributeValue::UnitRef(vtable_id));
+            if !struct_.has_indirect_virtual_methods(self.types) {
+                let this_pointer_id = self.unit.add(id, gimli::DW_TAG_pointer_type);
+                let this_pointer = self.unit.get_mut(this_pointer_id);
+                this_pointer.set(gimli::DW_AT_type, AttributeValue::UnitRef(vtable_id));
 
-            let this_param_id = self.unit.add(id, gimli::DW_TAG_member);
-            let this_param = self.unit.get_mut(this_param_id);
-            let name = AttributeValue::String(get_vtable_field_name(struct_).as_bytes().to_vec());
-            this_param.set(gimli::DW_AT_name, name);
-            this_param.set(gimli::DW_AT_type, AttributeValue::UnitRef(this_pointer_id));
-            this_param.set(gimli::DW_AT_artificial, AttributeValue::Data1(1));
-            this_param.set(gimli::DW_AT_data_member_location, AttributeValue::Data8(offset));
-            offset += POINTER_SIZE as u64;
+                let this_param_id = self.unit.add(id, gimli::DW_TAG_member);
+                let this_param = self.unit.get_mut(this_param_id);
+                let name = AttributeValue::String(get_vtable_field_name(struct_).as_bytes().to_vec());
+                this_param.set(gimli::DW_AT_name, name);
+                this_param.set(gimli::DW_AT_type, AttributeValue::UnitRef(this_pointer_id));
+                this_param.set(gimli::DW_AT_artificial, AttributeValue::Data1(1));
+                this_param.set(gimli::DW_AT_data_member_location, AttributeValue::Data8(offset));
+                offset += POINTER_SIZE as u64;
+            }
         }
 
-        for member in struct_.all_members(self.types) {
+        for member in &struct_.members {
             let type_id = self.get_type(&member.typ);
             let member_id = self.unit.add(id, gimli::DW_TAG_member);
             let member_entry = self.unit.get_mut(member_id);
@@ -285,14 +297,34 @@ impl<'a> DwarfWriter<'a> {
     }
 
     fn define_vtable(&mut self, struct_: &StructType) -> UnitEntryId {
+        if let Some(id) = self.vtables.get(&struct_.name.into()) {
+            return *id;
+        }
+
         let id = self.unit.add(self.unit.root(), gimli::DW_TAG_structure_type);
+        self.vtables.insert(struct_.name.into(), id);
+
         let entry = self.unit.get_mut(id);
         let name = AttributeValue::String(get_vtable_type_name(struct_).as_bytes().to_vec());
         entry.set(gimli::DW_AT_name, name);
         let size = struct_.all_virtual_methods(self.types).count() * POINTER_SIZE;
         entry.set(gimli::DW_AT_byte_size, AttributeValue::Data8(size as u64));
 
-        for (i, method) in struct_.all_virtual_methods(self.types).enumerate() {
+        if let Some(base) = struct_.base.and_then(|id| self.types.structs.get(&id)) {
+            let vtable_id = self.define_vtable(base);
+            let inherit_id = self.unit.add(id, gimli::DW_TAG_inheritance);
+            let inherit_entry = self.unit.get_mut(inherit_id);
+            inherit_entry.set(gimli::DW_AT_type, AttributeValue::UnitRef(vtable_id));
+            inherit_entry.set(gimli::DW_AT_data_member_location, AttributeValue::Data8(0));
+        }
+
+        let mut i = struct_
+            .base
+            .and_then(|id| self.types.structs.get(&id))
+            .map(|base| base.all_virtual_methods(self.types).count())
+            .unwrap_or(0);
+
+        for method in &struct_.virtual_methods {
             let method_id = self.define_virtual_method(id, struct_.name.into(), i, method);
             let type_id = self.unit.add(id, gimli::DW_TAG_pointer_type);
             let type_entry = self.unit.get_mut(type_id);
@@ -305,6 +337,8 @@ impl<'a> DwarfWriter<'a> {
             member_entry.set(gimli::DW_AT_type, AttributeValue::UnitRef(type_id));
             let location = AttributeValue::Data8(i as u64 * POINTER_SIZE as u64);
             member_entry.set(gimli::DW_AT_data_member_location, location);
+
+            i += 1;
         }
 
         id
@@ -363,9 +397,9 @@ impl<'a> DwarfWriter<'a> {
 }
 
 fn get_vtable_type_name(owner: &StructType) -> Cow<'static, str> {
-    format!("{}_vft", owner.name).into()
+    format!("{}_vtbl", owner.name).into()
 }
 
 fn get_vtable_field_name(_owner: &StructType) -> Cow<'static, str> {
-    "vft".into()
+    "__vftable".into()
 }
