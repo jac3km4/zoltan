@@ -7,9 +7,9 @@ pub struct Opts {
     pub dwarf_output_path: Option<PathBuf>,
     pub c_output_path: Option<PathBuf>,
     pub rust_output_path: Option<PathBuf>,
-    pub compiler_flags: Vec<String>,
     pub strip_namespaces: bool,
     pub eager_type_export: bool,
+    pub compiler_flags: Vec<String>,
 }
 
 impl Opts {
@@ -34,12 +34,6 @@ impl Opts {
             .argument("RUST")
             .from_str::<PathBuf>()
             .optional();
-        let compiler_flags = long("compiler-flag")
-            .short('f')
-            .help("Flags to pass to the compiler")
-            .argument("FLAGS")
-            .many()
-            .map(|flags| flags.into_iter().map(|flag| "-".to_owned() + &flag).collect());
         let strip_namespaces = long("strip-namespaces")
             .help("Strip namespaces from type names")
             .switch()
@@ -50,6 +44,12 @@ impl Opts {
             .switch()
             .optional()
             .map(|val| val.unwrap_or(false));
+        let compiler_flags = long("compiler-flag")
+            .short('f')
+            .help("Flags to pass to the compiler")
+            .argument("FLAGS")
+            .many()
+            .map(|flags| flags.into_iter().map(|flag| "-".to_owned() + &flag).collect());
 
         let parser = construct!(Opts {
             source_path,
@@ -57,9 +57,9 @@ impl Opts {
             dwarf_output_path,
             c_output_path,
             rust_output_path,
-            compiler_flags,
             strip_namespaces,
             eager_type_export
+            compiler_flags,
         });
 
         Info::default().descr(header).for_parser(parser).run()
