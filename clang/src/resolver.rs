@@ -11,7 +11,7 @@ pub struct TypeResolver {
     unions: TypeMap<UnionId, UnionType>,
     enums: TypeMap<EnumId, EnumType>,
     local_types: ScopeMap<Ustr, Type, BuildHasherDefault<IdentityHasher>>,
-    count: usize,
+    name_allocator: NameAllocator,
     strip_namespaces: bool,
 }
 
@@ -22,7 +22,7 @@ impl TypeResolver {
             unions: TypeMap::default(),
             enums: TypeMap::default(),
             local_types: ScopeMap::default(),
-            count: 0,
+            name_allocator: NameAllocator::default(),
             strip_namespaces,
         }
     }
@@ -35,7 +35,7 @@ impl TypeResolver {
         }
     }
 
-    fn resolve_decl(&mut self, entity: clang::Entity) -> Result<Type> {
+    pub fn resolve_decl(&mut self, entity: clang::Entity) -> Result<Type> {
         let name: Ustr = self.generate_type_name(entity);
 
         match entity.get_kind() {
@@ -263,7 +263,9 @@ impl TypeResolver {
 
     fn generate_type_name(&mut self, entity: clang::Entity) -> Ustr {
         let mut cur = entity;
-        let mut full_name = entity.get_display_name().unwrap_or_else(|| self.allocate_name());
+        let mut full_name = entity
+            .get_display_name()
+            .unwrap_or_else(|| self.name_allocator.allocate());
 
         while let Some(parent) = cur.get_semantic_parent() {
             match parent.get_kind() {
@@ -285,12 +287,6 @@ impl TypeResolver {
         entity
             .get_name_raw()
             .map(|str| str.as_str().into())
-            .unwrap_or_else(|| self.allocate_name().into())
-    }
-
-    fn allocate_name(&mut self) -> String {
-        let i = self.count;
-        self.count += 1;
-        format!("__anonymous{}", i)
+            .unwrap_or_else(|| self.name_allocator.allocate().into())
     }
 }

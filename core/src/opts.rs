@@ -40,7 +40,7 @@ impl Opts {
             .many()
             .map(|flags| flags.into_iter().map(|flag| "-".to_owned() + &flag).collect());
         let strip_namespaces = long("strip-namespaces")
-            .help("Strips namespaces from type names")
+            .help("Strip namespaces from type names")
             .switch()
             .optional()
             .map(|val| val.unwrap_or(false));

@@ -53,8 +53,9 @@ fn run(opts: &Opts) -> Result<()> {
         let is_project_file = ent
             .get_location()
             .and_then(|loc| loc.get_file_location().file)
-            .iter()
-            .any(|file| file.get_path() == opts.source_path);
+            .map(|file| file.get_path())
+            .as_deref()
+            == Some(&opts.source_path);
 
         match ent.get_kind() {
             EntityKind::Namespace if is_project_file => EntityVisitResult::Recurse,

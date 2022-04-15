@@ -222,3 +222,16 @@ pub struct TypeInfo {
     pub unions: TypeMap<UnionId, UnionType>,
     pub enums: TypeMap<EnumId, EnumType>,
 }
+
+#[derive(Debug, Default)]
+pub struct NameAllocator {
+    name_count: usize,
+}
+
+impl NameAllocator {
+    pub fn allocate(&mut self) -> String {
+        let i = self.name_count;
+        self.name_count += 1;
+        format!("__anonymous{}", i)
+    }
+}

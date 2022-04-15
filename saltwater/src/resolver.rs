@@ -10,7 +10,7 @@ pub struct TypeResolver {
     structs: TypeMap<StructId, StructType>,
     unions: TypeMap<UnionId, UnionType>,
     enums: TypeMap<EnumId, EnumType>,
-    count: usize,
+    name_allocator: NameAllocator,
 }
 
 impl TypeResolver {
@@ -85,7 +85,7 @@ impl TypeResolver {
     ) -> Result<UnionId> {
         let name: Ustr = name
             .map(Into::into)
-            .unwrap_or_else(|| self.allocate_name().into());
+            .unwrap_or_else(|| self.name_allocator.allocate().into());
 
         if !self.unions.contains_key(&name.into()) {
             let mut members = vec![];
@@ -111,7 +111,7 @@ impl TypeResolver {
     ) -> Result<StructId> {
         let name: Ustr = name
             .map(Into::into)
-            .unwrap_or_else(|| self.allocate_name().into());
+            .unwrap_or_else(|| self.name_allocator.allocate().into());
         if !self.structs.contains_key(&name.into()) {
             self.structs.insert(name.into(), StructType::stub(name));
 
@@ -140,7 +140,7 @@ impl TypeResolver {
     ) -> Result<EnumId> {
         let name: Ustr = name
             .map(Into::into)
-            .unwrap_or_else(|| self.allocate_name().into());
+            .unwrap_or_else(|| self.name_allocator.allocate().into());
         if !self.enums.contains_key(&name.into()) {
             let mut members = vec![];
             for (str, val) in vars {
@@ -154,11 +154,5 @@ impl TypeResolver {
             self.enums.insert(name.into(), enum_);
         }
         Ok(name.into())
-    }
-
-    fn allocate_name(&mut self) -> String {
-        let i = self.count;
-        self.count += 1;
-        format!("__anonymous{}", i)
     }
 }
