@@ -46,7 +46,7 @@ fn run(opts: &Opts) -> Result<()> {
 
     log::info!("Searching for typedefs...");
 
-    let mut resolver = TypeResolver::default();
+    let mut resolver = TypeResolver::new(opts.strip_namespaces);
     let mut entities = vec![];
 
     unit.get_entity().visit_children(|ent, _| {

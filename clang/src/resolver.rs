@@ -6,16 +6,27 @@ use zoltan::ustr::{IdentityHasher, Ustr};
 
 use crate::error::{Error, Result};
 
-#[derive(Default)]
 pub struct TypeResolver {
     structs: TypeMap<StructId, StructType>,
     unions: TypeMap<UnionId, UnionType>,
     enums: TypeMap<EnumId, EnumType>,
     local_types: ScopeMap<Ustr, Type, BuildHasherDefault<IdentityHasher>>,
     count: usize,
+    strip_namespaces: bool,
 }
 
 impl TypeResolver {
+    pub fn new(strip_namespaces: bool) -> Self {
+        Self {
+            structs: TypeMap::default(),
+            unions: TypeMap::default(),
+            enums: TypeMap::default(),
+            local_types: ScopeMap::default(),
+            count: 0,
+            strip_namespaces,
+        }
+    }
+
     pub fn into_types(self) -> TypeInfo {
         TypeInfo {
             structs: self.structs,
@@ -255,10 +266,14 @@ impl TypeResolver {
         let mut full_name = entity.get_display_name().unwrap_or_else(|| self.allocate_name());
 
         while let Some(parent) = cur.get_semantic_parent() {
-            if parent.get_kind() != clang::EntityKind::TranslationUnit {
-                let parent_name = parent.get_name();
-                let prefix = parent_name.as_deref().unwrap_or("__unnamed");
-                full_name = format!("{}::{}", prefix, full_name);
+            match parent.get_kind() {
+                clang::EntityKind::TranslationUnit => {}
+                clang::EntityKind::Namespace if self.strip_namespaces => {}
+                _ => {
+                    let parent_name = parent.get_name();
+                    let prefix = parent_name.as_deref().unwrap_or("__unnamed");
+                    full_name = format!("{}::{}", prefix, full_name);
+                }
             }
             cur = parent;
         }

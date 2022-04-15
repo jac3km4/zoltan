@@ -8,6 +8,7 @@ pub struct Opts {
     pub c_output_path: Option<PathBuf>,
     pub rust_output_path: Option<PathBuf>,
     pub compiler_flags: Vec<String>,
+    pub strip_namespaces: bool,
 }
 
 impl Opts {
@@ -38,6 +39,11 @@ impl Opts {
             .argument("FLAGS")
             .many()
             .map(|flags| flags.into_iter().map(|flag| "-".to_owned() + &flag).collect());
+        let strip_namespaces = long("strip-namespaces")
+            .help("Strips namespaces from type names")
+            .switch()
+            .optional()
+            .map(|val| val.unwrap_or(false));
 
         let parser = construct!(Opts {
             source_path,
@@ -45,7 +51,8 @@ impl Opts {
             dwarf_output_path,
             c_output_path,
             rust_output_path,
-            compiler_flags
+            compiler_flags,
+            strip_namespaces
         });
 
         Info::default().descr(header).for_parser(parser).run()
