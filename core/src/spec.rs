@@ -100,3 +100,34 @@ where
     str.parse()
         .map_err(|err: F::Err| ParamError::InvalidParam(field, err.to_string()))
 }
+
+#[cfg(test)]
+mod tests {
+    use std::assert_matches::assert_matches;
+
+    use super::*;
+    use crate::eval::Expr;
+    use crate::types::Type;
+
+    #[test]
+    fn parse_valid_spec() {
+        let function_type = FunctionType::new(vec![], Type::Void);
+        let comment = [
+            "/// @pattern E8 (fn:rel) 45 8B 86 70 01 00 00 33 C9 BA 05 00 00 00 C7 44 24 30 02 00 00 00",
+            "/// @nth 5/24",
+            "/// @offset 13",
+            "/// @eval fn",
+        ];
+        let spec = FunctionSpec::new("test".into(), function_type.into(), comment.into_iter());
+
+        assert_matches!(
+            spec,
+            Some(Ok(FunctionSpec {
+                nth_entry_of: Some((5, 24)),
+                offset: Some(13),
+                eval: Some(Expr::Ident(_)),
+                ..
+            }))
+        )
+    }
+}

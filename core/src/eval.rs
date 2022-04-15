@@ -75,3 +75,14 @@ peg::parser! {
           }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_valid_expr() {
+        let res = Expr::parse("*(vft + 2)");
+        assert_eq!(format!("{:?}", res), r#"Ok(Deref(Add(Ident("vft"), Int(2))))"#);
+    }
+}
