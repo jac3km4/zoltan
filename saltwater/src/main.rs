@@ -57,6 +57,8 @@ fn run(opts: &Opts) -> Result<()> {
                     specs.push(spec?);
                 }
             }
+        } else if opts.eager_type_export {
+            resolver.resolve_type(&var.ctype)?;
         }
     }
 

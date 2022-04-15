@@ -16,6 +16,7 @@ pub fn write_symbol_file<W>(
     symbols: Vec<FunctionSymbol>,
     type_info: &TypeInfo,
     props: ExeProperties,
+    eager_type_export: bool,
 ) -> Result<()>
 where
     W: io::Write,
@@ -35,6 +36,18 @@ where
     let mut writer = DwarfWriter::new(&mut dwarf.unit, type_info);
     for sym in symbols {
         writer.define_function_symbol(sym, props.image_base());
+    }
+
+    if eager_type_export {
+        for id in type_info.structs.keys() {
+            writer.get_or_define_type(&Type::Struct(*id));
+        }
+        for id in type_info.unions.keys() {
+            writer.get_or_define_type(&Type::Union(*id));
+        }
+        for id in type_info.enums.keys() {
+            writer.get_or_define_type(&Type::Enum(*id));
+        }
     }
 
     // TODO: handle endianess here
@@ -68,7 +81,7 @@ impl<'a> DwarfWriter<'a> {
         }
     }
 
-    fn get_type(&mut self, typ: &Type) -> UnitEntryId {
+    fn get_or_define_type(&mut self, typ: &Type) -> UnitEntryId {
         let name = typ.name();
         self.cache.get(&name).cloned().unwrap_or_else(|| {
             let id = self.define_type(typ);
@@ -129,7 +142,7 @@ impl<'a> DwarfWriter<'a> {
 
     fn define_pointer(&mut self, inner: &Type, tag: DwTag) -> UnitEntryId {
         let id = self.unit.add(self.unit.root(), tag);
-        let inner = self.get_type(inner);
+        let inner = self.get_or_define_type(inner);
         let entry = self.unit.get_mut(id);
         entry.set(gimli::DW_AT_type, AttributeValue::UnitRef(inner));
         entry.set(gimli::DW_AT_byte_size, AttributeValue::Data8(POINTER_SIZE as u64));
@@ -143,7 +156,7 @@ impl<'a> DwarfWriter<'a> {
         array_size: Option<usize>,
     ) -> UnitEntryId {
         let id = self.unit.add(self.unit.root(), gimli::DW_TAG_array_type);
-        let inner = self.get_type(inner);
+        let inner = self.get_or_define_type(inner);
         let entry = self.unit.get_mut(id);
         entry.set(gimli::DW_AT_type, AttributeValue::UnitRef(inner));
         if let Some(size) = byte_size {
@@ -190,7 +203,7 @@ impl<'a> DwarfWriter<'a> {
         }
 
         for member in struct_.all_members(self.types) {
-            let type_id = self.get_type(&member.typ);
+            let type_id = self.get_or_define_type(&member.typ);
             let member_id = self.unit.add(id, gimli::DW_TAG_member);
             let member_entry = self.unit.get_mut(member_id);
             let name = AttributeValue::String(member.name.as_bytes().to_vec());
@@ -231,7 +244,7 @@ impl<'a> DwarfWriter<'a> {
         }
 
         for member in &struct_.members {
-            let type_id = self.get_type(&member.typ);
+            let type_id = self.get_or_define_type(&member.typ);
             let member_id = self.unit.add(id, gimli::DW_TAG_member);
             let member_entry = self.unit.get_mut(member_id);
             let name = AttributeValue::String(member.name.as_bytes().to_vec());
@@ -270,12 +283,12 @@ impl<'a> DwarfWriter<'a> {
 
     fn define_function_type(&mut self, fun: &FunctionType) -> UnitEntryId {
         let id = self.unit.add(self.unit.root(), gimli::DW_TAG_subroutine_type);
-        let ret_type = self.get_type(&fun.return_type);
+        let ret_type = self.get_or_define_type(&fun.return_type);
         let entry = self.unit.get_mut(id);
         entry.set(gimli::DW_AT_type, AttributeValue::UnitRef(ret_type));
 
         for arg in &fun.params {
-            let type_id = self.get_type(arg);
+            let type_id = self.get_or_define_type(arg);
             let arg_id = self.unit.add(id, gimli::DW_TAG_formal_parameter);
             let arg_entry = self.unit.get_mut(arg_id);
             arg_entry.set(gimli::DW_AT_type, AttributeValue::UnitRef(type_id));
@@ -319,8 +332,8 @@ impl<'a> DwarfWriter<'a> {
     ) -> UnitEntryId {
         let id = self.unit.add(parent, gimli::DW_TAG_subroutine_type);
         let this_arg_id = self.unit.add(id, gimli::DW_TAG_formal_parameter);
-        let this_type_id = self.get_type(&Type::Pointer(Type::Struct(parent_id).into()));
-        let ret_type_id = self.get_type(&method.typ.return_type);
+        let this_type_id = self.get_or_define_type(&Type::Pointer(Type::Struct(parent_id).into()));
+        let ret_type_id = self.get_or_define_type(&method.typ.return_type);
 
         let entry = self.unit.get_mut(id);
         entry.set(gimli::DW_AT_type, AttributeValue::UnitRef(ret_type_id));
@@ -333,7 +346,7 @@ impl<'a> DwarfWriter<'a> {
         this_arg_entry.set(gimli::DW_AT_artificial, AttributeValue::Data1(1));
 
         for arg in &method.typ.params {
-            let type_id = self.get_type(arg);
+            let type_id = self.get_or_define_type(arg);
             let arg_id = self.unit.add(id, gimli::DW_TAG_formal_parameter);
             let arg_entry = self.unit.get_mut(arg_id);
             arg_entry.set(gimli::DW_AT_type, AttributeValue::UnitRef(type_id));
@@ -344,7 +357,7 @@ impl<'a> DwarfWriter<'a> {
 
     fn define_function_symbol(&mut self, fun: FunctionSymbol, image_base: u64) {
         let id = self.unit.add(self.unit.root(), gimli::DW_TAG_subprogram);
-        let ret_type_id = self.get_type(&fun.function_type().return_type);
+        let ret_type_id = self.get_or_define_type(&fun.function_type().return_type);
 
         let entry = self.unit.get_mut(id);
         let name = AttributeValue::String(fun.name().as_bytes().to_vec());
@@ -354,7 +367,7 @@ impl<'a> DwarfWriter<'a> {
         entry.set(gimli::DW_AT_type, AttributeValue::UnitRef(ret_type_id));
 
         for arg in &fun.function_type().params {
-            let type_id = self.get_type(arg);
+            let type_id = self.get_or_define_type(arg);
             let arg_id = self.unit.add(id, gimli::DW_TAG_formal_parameter);
             let param = self.unit.get_mut(arg_id);
             param.set(gimli::DW_AT_type, AttributeValue::UnitRef(type_id));

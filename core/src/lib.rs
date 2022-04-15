@@ -54,7 +54,13 @@ pub fn process_specs(specs: Vec<FunctionSpec>, type_info: &TypeInfo, opts: &Opts
     }
     if let Some(path) = &opts.dwarf_output_path {
         let props = ExeProperties::from_object(&exe);
-        dwarf::write_symbol_file(File::create(path)?, syms, type_info, props)?;
+        dwarf::write_symbol_file(
+            File::create(path)?,
+            syms,
+            type_info,
+            props,
+            opts.eager_type_export,
+        )?;
     }
 
     Ok(())

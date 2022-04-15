@@ -9,6 +9,7 @@ pub struct Opts {
     pub rust_output_path: Option<PathBuf>,
     pub compiler_flags: Vec<String>,
     pub strip_namespaces: bool,
+    pub eager_type_export: bool,
 }
 
 impl Opts {
@@ -44,6 +45,11 @@ impl Opts {
             .switch()
             .optional()
             .map(|val| val.unwrap_or(false));
+        let eager_type_export = long("eager-type-export")
+            .help("Export all types found in the sources")
+            .switch()
+            .optional()
+            .map(|val| val.unwrap_or(false));
 
         let parser = construct!(Opts {
             source_path,
@@ -52,7 +58,8 @@ impl Opts {
             c_output_path,
             rust_output_path,
             compiler_flags,
-            strip_namespaces
+            strip_namespaces,
+            eager_type_export
         });
 
         Info::default().descr(header).for_parser(parser).run()

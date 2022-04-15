@@ -63,6 +63,15 @@ fn run(opts: &Opts) -> Result<()> {
                 entities.push(ent);
                 EntityVisitResult::Continue
             }
+            EntityKind::StructDecl
+            | EntityKind::ClassDecl
+            | EntityKind::UnionDecl
+            | EntityKind::EnumDecl
+                if opts.eager_type_export =>
+            {
+                resolver.resolve_decl(ent).ok();
+                EntityVisitResult::Continue
+            }
             _ => EntityVisitResult::Continue,
         }
     });

@@ -21,13 +21,15 @@ The example above uses the clang frontend, you can read about other frontends [h
 ```
 Zoltan Clang frontend for C/C++
 
-Usage: <SOURCE> <EXE> [-o DWARF] [--c-output C] [--rust-output RUST] -f FLAGS...
+Usage: <SOURCE> <EXE> [-o DWARF] [--c-output C] [--rust-output RUST] -f FLAGS... [[--strip-namespaces]] [[--eager-type-export]]
 
 Available options:
     -o, --dwarf-output <DWARF>   DWARF file to write
         --c-output <C>           C header with offsets to write
         --rust-output <RUST>     Rust file with offsets to write
     -f, --compiler-flag <FLAGS>  Flags to pass to the compiler
+        --strip-namespaces       Strip namespaces from type names
+        --eager-type-export      Export all types found in the sources
     -h, --help                   Prints help information
 ```
 
