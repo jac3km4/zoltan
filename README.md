@@ -95,10 +95,13 @@ There are two frontends available:
 - zoltan-clang
     - uses libclang, so it can be used against complex C++ codebases leveraging modern standards
     - can be relatively slow because of the Clang parser
+    - allows the use of C++ `using` type aliases instead of typedefs
     - requires libclang set up locally
         - on recent versions of windows you can do
             ```powershell
             winget install llvm
             $env:PATH += ";C:\Program Files\LLVM\bin"
             ```
-    - allows the use of C++ `using` type aliases instead of typedefs
+        - the `PATH` change above isn't persistent, if you want to update `PATH` permanently you need to do it in the Control Panel
+            
+            ![PATH change](https://user-images.githubusercontent.com/11986158/163652902-b3a66b03-378e-40c5-bdcf-0a8363de3b06.png)
