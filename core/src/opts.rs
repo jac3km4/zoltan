@@ -16,23 +16,23 @@ impl Opts {
     pub fn load(header: &'static str) -> Self {
         use bpaf::*;
 
-        let source_path = positional("SOURCE").from_str::<PathBuf>();
-        let exe_path = positional("EXE").from_str::<PathBuf>();
+        let source_path = positional_os("SOURCE").map(PathBuf::from);
+        let exe_path = positional_os("EXE").map(PathBuf::from);
         let dwarf_output_path = long("dwarf-output")
             .short('o')
             .help("DWARF file to write")
-            .argument("DWARF")
-            .from_str::<PathBuf>()
+            .argument_os("DWARF")
+            .map(PathBuf::from)
             .optional();
         let c_output_path = long("c-output")
             .help("C header with offsets to write")
-            .argument("C")
-            .from_str::<PathBuf>()
+            .argument_os("C")
+            .map(PathBuf::from)
             .optional();
         let rust_output_path = long("rust-output")
             .help("Rust file with offsets to write")
-            .argument("RUST")
-            .from_str::<PathBuf>()
+            .argument_os("RUST")
+            .map(PathBuf::from)
             .optional();
         let strip_namespaces = long("strip-namespaces")
             .help("Strip namespaces from type names")
