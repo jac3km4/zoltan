@@ -36,14 +36,10 @@ impl Opts {
             .optional();
         let strip_namespaces = long("strip-namespaces")
             .help("Strip namespaces from type names")
-            .switch()
-            .optional()
-            .map(|val| val.unwrap_or(false));
+            .switch();
         let eager_type_export = long("eager-type-export")
             .help("Export all types found in the sources")
-            .switch()
-            .optional()
-            .map(|val| val.unwrap_or(false));
+            .switch();
         let compiler_flags = long("compiler-flag")
             .short('f')
             .help("Flags to pass to the compiler")
