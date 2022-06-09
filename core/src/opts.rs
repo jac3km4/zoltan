@@ -44,8 +44,8 @@ impl Opts {
             .short('f')
             .help("Flags to pass to the compiler")
             .argument("FLAGS")
-            .many()
-            .map(|flags| flags.into_iter().map(|flag| "-".to_owned() + &flag).collect());
+            .map(|flag| format!("-{}", flag))
+            .many();
 
         let parser = construct!(Opts {
             source_path,
