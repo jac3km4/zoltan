@@ -107,8 +107,19 @@ pub fn write_idc_types<W: Write>(mut out: W, info: &TypeInfo) -> Result<()> {
             writeln!(out, r#"{pad}{id}_vtbl *__vftable;"#)?;
         }
 
-        for m in &struc.members {
-            writeln!(out, "{pad}{};", m.typ.name_with_id(&m.name))?;
+        for (i, m) in struc.members.iter().enumerate() {
+            if m.is_bitfield {
+                let bit_size = struc
+                    .members
+                    .get(i + 1)
+                    .and_then(|m| m.bit_offset)
+                    .zip(m.bit_offset)
+                    .map(|(a, b)| a - b)
+                    .unwrap_or(1);
+                writeln!(out, "{pad}{}: {bit_size};", m.typ.name_with_id(&m.name))?;
+            } else {
+                writeln!(out, "{pad}{};", m.typ.name_with_id(&m.name))?;
+            }
         }
         writeln!(out, "}}")?;
         writeln!(out, "// END_DECL")?;
