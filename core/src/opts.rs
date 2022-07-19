@@ -7,6 +7,7 @@ pub struct Opts {
     pub dwarf_output_path: Option<PathBuf>,
     pub c_output_path: Option<PathBuf>,
     pub rust_output_path: Option<PathBuf>,
+    pub idc_output_path: Option<PathBuf>,
     pub strip_namespaces: bool,
     pub eager_type_export: bool,
     pub compiler_flags: Vec<String>,
@@ -28,6 +29,11 @@ impl Opts {
             .help("C header with offsets to write")
             .argument_os("C")
             .map(PathBuf::from)
+            .optional();
+        let idc_output_path = long("idc-output")
+            .help("IDC type definition file to write")
+            .argument("IDC")
+            .from_str::<PathBuf>()
             .optional();
         let rust_output_path = long("rust-output")
             .help("Rust file with offsets to write")
@@ -52,6 +58,7 @@ impl Opts {
             exe_path,
             dwarf_output_path,
             c_output_path,
+            idc_output_path,
             rust_output_path,
             strip_namespaces,
             eager_type_export

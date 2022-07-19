@@ -6,6 +6,7 @@ use std::rc::Rc;
 use auto_enums::auto_enum;
 use derive_more::{AsRef, Display, From};
 use enum_as_inner::EnumAsInner;
+use itertools::Itertools;
 use ustr::{IdentityHasher, Ustr};
 
 pub const POINTER_SIZE: usize = 8;
@@ -58,7 +59,23 @@ impl Type {
         }
     }
 
-    pub fn name(&self) -> Cow<'static, str> {
+    fn name_right(&self) -> Option<Cow<'static, str>> {
+        match self {
+            Type::Pointer(inner) => inner.name_right(),
+            Type::Reference(inner) => inner.name_right(),
+            Type::Array(inner) => Some(format!("{}[]", inner.name_right().unwrap_or_default()).into()),
+            Type::FixedArray(inner, size) => {
+                Some(format!("{}[{size}]", inner.name_right().unwrap_or_default()).into())
+            }
+            Type::Function(ty) => {
+                let params = ty.params.iter().map(Type::name).format(", ");
+                Some(format!("({params})").into())
+            }
+            _ => None,
+        }
+    }
+
+    fn name_left(&self) -> Cow<'static, str> {
         match self {
             Type::Void => "void".into(),
             Type::Bool => "bool".into(),
@@ -76,19 +93,31 @@ impl Type {
             Type::Union(id) => id.as_ref().as_str().into(),
             Type::Struct(id) => id.as_ref().as_str().into(),
             Type::Enum(id) => id.as_ref().as_str().into(),
-            Type::Pointer(inner) => format!("{}*", inner.name()).into(),
-            Type::Reference(inner) => format!("{}&", inner.name()).into(),
-            Type::Array(inner) => format!("{}[]", inner.name()).into(),
-            Type::FixedArray(inner, size) => format!("{}[{}]", inner.name(), size).into(),
-            Type::Function(fun) => {
-                let ret = fun.return_type.name();
-                let mut params = String::new();
-                for param in &fun.params {
-                    params.push_str(&param.name());
-                    params.push_str(", ");
-                }
-                format!("{} ({})", ret, params).into()
+            Type::Pointer(inner) if matches!(inner.as_ref(), Type::Function(_)) => {
+                format!("{}(*)", inner.name_left()).into()
             }
+            Type::Pointer(inner) => format!("{}*", inner.name_left()).into(),
+            Type::Reference(inner) if matches!(inner.as_ref(), Type::Function(_)) => {
+                format!("{}(&)", inner.name_left()).into()
+            }
+            Type::Reference(inner) => format!("{}&", inner.name_left()).into(),
+            Type::Array(inner) => inner.name_left(),
+            Type::FixedArray(inner, _) => inner.name_left(),
+            Type::Function(fun) => fun.return_type.name(),
+        }
+    }
+
+    pub fn name(&self) -> Cow<'static, str> {
+        match self.name_right() {
+            Some(right) => format!("{}{right}", self.name_left()).into(),
+            None => self.name_left(),
+        }
+    }
+
+    pub fn name_with_id(&self, id: &str) -> Cow<'static, str> {
+        match self.name_right() {
+            Some(right) => format!("{} {id}{right}", self.name_left()).into(),
+            None => format!("{} {id}", self.name_left()).into(),
         }
     }
 }

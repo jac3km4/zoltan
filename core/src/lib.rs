@@ -42,7 +42,11 @@ pub fn process_specs(specs: Vec<FunctionSpec>, type_info: &TypeInfo, opts: &Opts
         log::warn!("Some of the patterns have failed:\n{message}",);
     }
 
-    if opts.c_output_path.is_none() && opts.rust_output_path.is_none() && opts.dwarf_output_path.is_none() {
+    if opts.c_output_path.is_none()
+        && opts.rust_output_path.is_none()
+        && opts.dwarf_output_path.is_none()
+        && opts.idc_output_path.is_none()
+    {
         log::error!("No output option specified, nothing to do")
     }
 
@@ -52,6 +56,12 @@ pub fn process_specs(specs: Vec<FunctionSpec>, type_info: &TypeInfo, opts: &Opts
     if let Some(path) = &opts.rust_output_path {
         codegen::write_rust_header(File::create(path)?, &syms)?;
     }
+    if let Some(path) = &opts.idc_output_path {
+        let mut file = File::create(path)?;
+        codegen::write_idc_types(&mut file, type_info)?;
+        codegen::write_idc_funs(&mut file, &syms)?;
+    }
+
     if let Some(path) = &opts.dwarf_output_path {
         let props = ExeProperties::from_object(&exe);
         dwarf::write_symbol_file(

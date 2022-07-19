@@ -69,8 +69,8 @@ impl FunctionSymbol {
         &self.name
     }
 
-    pub fn function_type(&self) -> &FunctionType {
-        &self.function_type
+    pub fn function_type(&self) -> Rc<FunctionType> {
+        self.function_type.clone()
     }
 
     pub fn rva(&self) -> u64 {

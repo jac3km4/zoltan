@@ -280,7 +280,14 @@ impl TypeResolver {
             cur = parent;
         }
 
-        full_name.into()
+        full_name
+            .replace('<', "$L")
+            .replace('>', "$R")
+            .replace(',', "$C")
+            .replace('*', "$P")
+            .replace('&', "$F")
+            .replace(' ', "")
+            .into()
     }
 
     fn get_entity_name(&mut self, entity: clang::Entity) -> Ustr {
