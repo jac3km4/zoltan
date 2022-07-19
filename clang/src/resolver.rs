@@ -225,8 +225,16 @@ impl TypeResolver {
             }
         }
 
+        let underlying_type = entity
+            .get_enum_underlying_type()
+            .and_then(|t| self.resolve_type(t).ok());
         let size = entity.get_type().unwrap().get_sizeof().ok();
-        Ok(EnumType { name, members, size })
+        Ok(EnumType {
+            name,
+            members,
+            size,
+            underlying_type,
+        })
     }
 
     fn resolve_union(&mut self, name: Ustr, entity: clang::Entity) -> Result<UnionType> {

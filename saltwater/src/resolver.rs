@@ -150,6 +150,7 @@ impl TypeResolver {
                 name,
                 members,
                 size: size.map(|s| s as usize),
+                underlying_type: None,
             };
             self.enums.insert(name.into(), enum_);
         }

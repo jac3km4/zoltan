@@ -79,8 +79,8 @@ impl Type {
         match self {
             Type::Void => "void".into(),
             Type::Bool => "bool".into(),
-            Type::Char(true) => "char".into(),
-            Type::Char(false) => "signed char".into(),
+            Type::Char(true) => "int8_t".into(),
+            Type::Char(false) => "uint8_t".into(),
             Type::WChar => "wchar_t".into(),
             Type::Short(true) => "int16_t".into(),
             Type::Short(false) => "uint16_t".into(),
@@ -237,6 +237,7 @@ pub struct EnumType {
     pub name: Ustr,
     pub members: Vec<EnumMember>,
     pub size: Option<usize>,
+    pub underlying_type: Option<Type>,
 }
 
 #[derive(Debug)]

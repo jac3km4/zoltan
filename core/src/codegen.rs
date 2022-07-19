@@ -82,7 +82,11 @@ pub fn write_idc_types<W: Write>(mut out: W, info: &TypeInfo) -> Result<()> {
     for (id, ty) in &info.enums {
         writeln!(out)?;
         writeln!(out, "// START_DECL TYPE")?;
-        writeln!(out, "enum {id} {{")?;
+        write!(out, "enum {id}")?;
+        if let Some(underlying) = &ty.underlying_type {
+            write!(out, ": {}", underlying.name())?;
+        }
+        writeln!(out, " {{")?;
         for m in &ty.members {
             writeln!(out, "{pad}{} = {},", m.name, m.value)?;
         }
