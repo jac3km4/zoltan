@@ -130,17 +130,17 @@ where
         sequences.push(seq.iter().filter_map(PatItem::as_byte).cloned().collect());
     }
 
-    let ac = AhoCorasick::new(&sequences);
+    let ac = AhoCorasick::new(&sequences).unwrap();
     let mut matches = vec![];
 
     for mat in ac.find_overlapping_iter(haystack) {
-        let (pat, offset) = items[mat.pattern()];
+        let (pat, offset) = items[mat.pattern().as_usize()];
         let start = mat.start() - offset;
         let slice = &haystack[start..start + pat.size()];
 
         if pat.does_match(slice) {
             let mat = Match {
-                pattern: mat.pattern(),
+                pattern: mat.pattern().as_usize(),
                 rva: start as u64,
             };
             matches.push(mat);

@@ -16,23 +16,23 @@ impl Opts {
     pub fn load(header: &'static str) -> Self {
         use bpaf::*;
 
-        let source_path = positional_os("SOURCE").map(PathBuf::from);
-        let exe_path = positional_os("EXE").map(PathBuf::from);
+        let source_path = positional::<std::path::PathBuf>("SOURCE");
+        let exe_path = positional::<std::path::PathBuf>("EXE");
         let dwarf_output_path = long("dwarf-output")
             .short('o')
             .help("DWARF file to write")
-            .argument_os("DWARF")
-            .map(PathBuf::from)
+            .argument::<std::path::PathBuf>("DWARF")
+
             .optional();
         let c_output_path = long("c-output")
             .help("C header with offsets to write")
-            .argument_os("C")
-            .map(PathBuf::from)
+            .argument::<std::path::PathBuf>("C")
+
             .optional();
         let rust_output_path = long("rust-output")
             .help("Rust file with offsets to write")
-            .argument_os("RUST")
-            .map(PathBuf::from)
+            .argument::<std::path::PathBuf>("RUST")
+
             .optional();
         let strip_namespaces = long("strip-namespaces")
             .help("Strip namespaces from type names")
@@ -43,7 +43,7 @@ impl Opts {
         let compiler_flags = long("compiler-flag")
             .short('f')
             .help("Flags to pass to the compiler")
-            .argument("FLAGS")
+            .argument::<String>("FLAGS")
             .map(|flag| format!("-{}", flag))
             .many();
 
@@ -54,10 +54,10 @@ impl Opts {
             c_output_path,
             rust_output_path,
             strip_namespaces,
-            eager_type_export
+            eager_type_export,
             compiler_flags,
         });
 
-        Info::default().descr(header).for_parser(parser).run()
+        parser.to_options().descr(header).run()
     }
 }

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-thiserror = "1"
+thiserror = "2"
 log = "0.4"
 quickscope = "0.2"
 
@@ -12,7 +12,7 @@ quickscope = "0.2"
 path = "../core"
 
 [dependencies.flexi_logger]
-version = "0.22"
+version = "0.31"
 default-features = false
 features = ["colors"]
 
