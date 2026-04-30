@@ -22,17 +22,14 @@ impl Opts {
             .short('o')
             .help("DWARF file to write")
             .argument::<std::path::PathBuf>("DWARF")
-
             .optional();
         let c_output_path = long("c-output")
             .help("C header with offsets to write")
             .argument::<std::path::PathBuf>("C")
-
             .optional();
         let rust_output_path = long("rust-output")
             .help("Rust file with offsets to write")
             .argument::<std::path::PathBuf>("RUST")
-
             .optional();
         let strip_namespaces = long("strip-namespaces")
             .help("Strip namespaces from type names")
