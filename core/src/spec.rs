@@ -103,7 +103,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::assert_matches::assert_matches;
+    use assert_matches::assert_matches;
 
     use super::*;
     use crate::eval::Expr;

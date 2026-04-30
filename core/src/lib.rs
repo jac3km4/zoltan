@@ -1,5 +1,3 @@
-#![feature(slice_group_by)]
-#![feature(assert_matches)]
 #![feature(iter_advance_by)]
 
 pub mod codegen;
