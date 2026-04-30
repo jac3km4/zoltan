@@ -103,7 +103,6 @@ where
 #[cfg(test)]
 mod tests {
 
-
     use super::*;
     use crate::eval::Expr;
     use crate::types::Type;
@@ -128,5 +127,5 @@ mod tests {
                 ..
             }))
         ));
-}
+    }
 }

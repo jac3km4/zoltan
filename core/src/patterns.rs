@@ -165,7 +165,6 @@ fn offset_from<T>(slice: &[T], other: &[T]) -> usize {
 #[cfg(test)]
 mod tests {
 
-
     use super::*;
 
     #[test]
@@ -210,11 +209,14 @@ mod tests {
             0x9C, 0x0D, 0x1C, 0x53, 0x1D, 0x35, 0xFD, 0x98, 0x07, 0x10, 0x22, 0x49, 0xC5, 0xBB, 0x5E, 0x83,
             0xF1, 0xBF, 0x49, 0x8E, 0x78, 0x32, 0x17, 0xC1, 0x6F, 0xBA, 0x83, 0x5B, 0x5D, 0x83, 0x89, 0xBF,
         ];
-        assert!(matches!(multi_search([&pat1, &pat2, &pat3], &haystack).as_slice(), &[
-            Match { pattern: 0, rva: 6 },
-            Match { pattern: 1, rva: 12 },
-            Match { pattern: 2, rva: 25 },
-        ]));
+        assert!(matches!(
+            multi_search([&pat1, &pat2, &pat3], &haystack).as_slice(),
+            &[
+                Match { pattern: 0, rva: 6 },
+                Match { pattern: 1, rva: 12 },
+                Match { pattern: 2, rva: 25 },
+            ]
+        ));
     }
 
     #[test]
