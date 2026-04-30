@@ -3,7 +3,7 @@ use flexi_logger::{LogSpecification, Logger};
 use resolver::TypeResolver;
 use saltwater::codespan::LineIndex;
 use saltwater::hir::Variable;
-use saltwater::{check_semantics, get_str, Opt, StorageClass};
+use saltwater::{Opt, StorageClass, check_semantics, get_str};
 use zoltan::opts::Opts;
 use zoltan::spec::FunctionSpec;
 use zoltan::types::Type;
@@ -52,6 +52,7 @@ fn run(opts: &Opts) -> Result<()> {
                 })
                 .take_while(|str| str.starts_with("///"));
 
+            #[allow(clippy::collapsible_if)]
             if let Type::Function(fn_type) = resolver.resolve_type(function_type)? {
                 if let Some(spec) = FunctionSpec::new(get_str!(var.id).into(), fn_type, comments) {
                     specs.push(spec?);

@@ -1,7 +1,7 @@
 [package]
 name = "zoltan"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [lib]
 crate-type = ["rlib"]
@@ -26,3 +26,6 @@ features = ["read", "write", "std"]
 version = "0.28"
 default-features = false
 features = ["read_core", "write_std", "elf", "pe"]
+
+[dev-dependencies]
+assert_matches = "1.5.0"

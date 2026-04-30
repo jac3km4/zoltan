@@ -88,7 +88,7 @@ impl Pattern {
 
     fn longest_byte_sequence(&self) -> &[PatItem] {
         self.parts()
-            .group_by(|a, b| a.as_byte().is_some() && b.as_byte().is_some())
+            .chunk_by(|a, b| a.as_byte().is_some() && b.as_byte().is_some())
             .max_by_key(|parts| parts.len())
             .unwrap_or_default()
     }
@@ -163,7 +163,7 @@ fn offset_from<T>(slice: &[T], other: &[T]) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use std::assert_matches::assert_matches;
+    use assert_matches::assert_matches;
 
     use super::*;
 

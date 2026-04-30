@@ -1,5 +1,5 @@
 use saltwater::types::ArrayType;
-use saltwater::{get_str, InternedStr};
+use saltwater::{InternedStr, get_str};
 use zoltan::types::*;
 use zoltan::ustr::Ustr;
 
@@ -141,18 +141,17 @@ impl TypeResolver {
         let name: Ustr = name
             .map(Into::into)
             .unwrap_or_else(|| self.name_allocator.allocate().into());
-        if !self.enums.contains_key(&name.into()) {
+        self.enums.entry(name.into()).or_insert_with(|| {
             let mut members = vec![];
             for (str, val) in vars {
                 members.push(EnumMember::new(get_str!(str).into(), *val));
             }
-            let enum_ = EnumType {
+            EnumType {
                 name,
                 members,
                 size: size.map(|s| s as usize),
-            };
-            self.enums.insert(name.into(), enum_);
-        }
+            }
+        });
         Ok(name.into())
     }
 }
