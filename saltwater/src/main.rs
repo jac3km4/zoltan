@@ -3,7 +3,7 @@ use flexi_logger::{LogSpecification, Logger};
 use resolver::TypeResolver;
 use saltwater::codespan::LineIndex;
 use saltwater::hir::Variable;
-use saltwater::{check_semantics, get_str, Opt, StorageClass};
+use saltwater::{Opt, StorageClass, check_semantics, get_str};
 use zoltan::opts::Opts;
 use zoltan::spec::FunctionSpec;
 use zoltan::types::Type;

@@ -1,5 +1,5 @@
 use saltwater::types::ArrayType;
-use saltwater::{get_str, InternedStr};
+use saltwater::{InternedStr, get_str};
 use zoltan::types::*;
 use zoltan::ustr::Ustr;
 
