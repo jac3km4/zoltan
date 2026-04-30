@@ -19,7 +19,7 @@ impl Expr {
         expr::expr(str)
     }
 
-    pub fn eval(&self, ctx: &EvalContext) -> Result<u64> {
+    pub fn eval(&self, ctx: &EvalContext<'_>) -> Result<u64> {
         match self {
             Expr::Deref(expr) => ctx.data.resolve_rel_rdata(expr.eval(ctx)?),
             Expr::Add(lhs, rhs) => Ok(lhs.eval(ctx)? + rhs.eval(ctx)?),
@@ -36,7 +36,7 @@ pub struct EvalContext<'a> {
 }
 
 impl<'a> EvalContext<'a> {
-    pub fn new(pattern: &'a Pattern, data: &'a ExecutableData, rva: u64) -> Result<Self> {
+    pub fn new(pattern: &'a Pattern, data: &'a ExecutableData<'_>, rva: u64) -> Result<Self> {
         let mut vars = HashMap::new();
         for (key, typ, offset) in pattern.groups() {
             let abs = match typ {
@@ -51,7 +51,7 @@ impl<'a> EvalContext<'a> {
     fn get_var(&self, name: &str) -> Result<u64> {
         self.vars
             .get(name)
-            .cloned()
+            .copied()
             .ok_or_else(|| Error::UnresolvedName(name.to_owned()))
     }
 }

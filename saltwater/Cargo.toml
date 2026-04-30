@@ -19,3 +19,6 @@ features = ["colors"]
 git = "https://github.com/jac3km4/saltwater"
 rev = "v0.11.0-custom"
 package = "saltwater-parser"
+
+[lints]
+workspace = true

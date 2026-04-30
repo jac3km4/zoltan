@@ -12,7 +12,7 @@ use crate::types::FunctionType;
 
 pub fn resolve_in_exe(
     specs: Vec<FunctionSpec>,
-    exe: &ExecutableData,
+    exe: &ExecutableData<'_>,
 ) -> Result<(Vec<FunctionSymbol>, Vec<SymbolError>)> {
     let mut match_map: HashMap<usize, Vec<u64>> = HashMap::new();
     for mat in patterns::multi_search(specs.iter().map(|spec| &spec.pattern), exe.text()) {
@@ -41,10 +41,10 @@ pub fn resolve_in_exe(
     Ok((syms, errs))
 }
 
-fn resolve_symbol(spec: FunctionSpec, data: &ExecutableData, rva: u64) -> Result<FunctionSymbol> {
+fn resolve_symbol(spec: FunctionSpec, data: &ExecutableData<'_>, rva: u64) -> Result<FunctionSymbol> {
     let res = match &spec.eval {
         Some(expr) => expr.eval(&EvalContext::new(&spec.pattern, data, rva)?)? - data.image_base(),
-        None => (rva as i64 - spec.offset.unwrap_or(0) as i64) as u64 + data.text_offset_from_base(),
+        None => (rva as i64 - spec.offset.unwrap_or(0)) as u64 + data.text_offset_from_base(),
     };
     Ok(FunctionSymbol::new(spec.name, spec.function_type, res))
 }

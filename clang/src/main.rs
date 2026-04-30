@@ -1,3 +1,4 @@
+#![allow(tail_expr_drop_order)]
 use clang::diagnostic::Severity;
 use clang::{Clang, EntityKind, EntityVisitResult, Index};
 use error::{Error, Result};

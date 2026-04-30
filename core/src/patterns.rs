@@ -1,3 +1,4 @@
+#![allow(clippy::match_same_arms)]
 use aho_corasick::AhoCorasick;
 use enum_as_inner::EnumAsInner;
 
@@ -74,7 +75,7 @@ impl Pattern {
                     }
                 }
                 PatItem::Group(_, _) => {
-                    if bytes.advance_by(pat.size()).is_err() {
+                    if bytes.nth(pat.size() - 1).is_none() {
                         return false;
                     }
                 }
@@ -88,7 +89,7 @@ impl Pattern {
 
     fn longest_byte_sequence(&self) -> &[PatItem] {
         self.parts()
-            .group_by(|a, b| a.as_byte().is_some() && b.as_byte().is_some())
+            .chunk_by(|a, b| a.as_byte().is_some() && b.as_byte().is_some())
             .max_by_key(|parts| parts.len())
             .unwrap_or_default()
     }
@@ -127,7 +128,7 @@ where
         let start = offset_from(pat.parts(), seq);
         let offset: usize = pat.parts[0..start].iter().map(PatItem::size).sum();
         items.push((pat, offset));
-        sequences.push(seq.iter().filter_map(PatItem::as_byte).cloned().collect());
+        sequences.push(seq.iter().filter_map(PatItem::as_byte).copied().collect());
     }
 
     let ac = AhoCorasick::new(&sequences);
@@ -163,41 +164,41 @@ fn offset_from<T>(slice: &[T], other: &[T]) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use std::assert_matches::assert_matches;
+
 
     use super::*;
 
     #[test]
     fn parse_valid_patterns() {
         let pat = Pattern::parse("8B 0D ? ? BA 10").unwrap();
-        assert_matches!(pat.parts(), &[
+        assert!(matches!(pat.parts(), &[
             PatItem::Byte(0x8B),
             PatItem::Byte(0x0D),
             PatItem::Any,
             PatItem::Any,
             PatItem::Byte(0xBA),
             PatItem::Byte(0x10),
-        ]);
+        ]));
 
         let pat = Pattern::parse("8BF9E8??").unwrap();
-        assert_matches!(pat.parts(), &[
+        assert!(matches!(pat.parts(), &[
             PatItem::Byte(0x8B),
             PatItem::Byte(0xF9),
             PatItem::Byte(0xe8),
             PatItem::Any,
             PatItem::Any,
-        ]);
+        ]));
     }
 
     #[test]
     fn return_correct_longest_seq() {
         let pat = Pattern::parse("8B ? 0D ? F9 5F 48 B8 ? BA 10").unwrap();
-        assert_matches!(pat.longest_byte_sequence(), &[
+        assert!(matches!(pat.longest_byte_sequence(), &[
             PatItem::Byte(0xF9),
             PatItem::Byte(0x5F),
             PatItem::Byte(0x48),
             PatItem::Byte(0xB8)
-        ]);
+        ]));
     }
 
     #[test]
@@ -209,20 +210,20 @@ mod tests {
             0x9C, 0x0D, 0x1C, 0x53, 0x1D, 0x35, 0xFD, 0x98, 0x07, 0x10, 0x22, 0x49, 0xC5, 0xBB, 0x5E, 0x83,
             0xF1, 0xBF, 0x49, 0x8E, 0x78, 0x32, 0x17, 0xC1, 0x6F, 0xBA, 0x83, 0x5B, 0x5D, 0x83, 0x89, 0xBF,
         ];
-        assert_matches!(multi_search([&pat1, &pat2, &pat3], &haystack).as_slice(), &[
+        assert!(matches!(multi_search([&pat1, &pat2, &pat3], &haystack).as_slice(), &[
             Match { pattern: 0, rva: 6 },
             Match { pattern: 1, rva: 12 },
             Match { pattern: 2, rva: 25 },
-        ]);
+        ]));
     }
 
     #[test]
     fn return_correct_groups() {
         let pat = Pattern::parse("BA CC (one:rel) FF 89 BF (two:rel) (three:rel) 56").unwrap();
-        assert_matches!(pat.groups().collect::<Vec<_>>().as_slice(), &[
+        assert!(matches!(pat.groups().collect::<Vec<_>>().as_slice(), &[
             ("one", VarType::Rel, 2),
             ("two", VarType::Rel, 9),
             ("three", VarType::Rel, 13)
-        ]);
+        ]));
     }
 }

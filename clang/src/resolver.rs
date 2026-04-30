@@ -1,3 +1,4 @@
+#![allow(clippy::match_same_arms)]
 use std::hash::BuildHasherDefault;
 
 use quickscope::ScopeMap;
@@ -35,7 +36,7 @@ impl TypeResolver {
         }
     }
 
-    pub fn resolve_decl(&mut self, entity: clang::Entity) -> Result<Type> {
+    pub fn resolve_decl(&mut self, entity: clang::Entity<'_>) -> Result<Type> {
         let name: Ustr = self.generate_type_name(entity);
 
         match entity.get_kind() {
@@ -74,7 +75,7 @@ impl TypeResolver {
         }
     }
 
-    pub fn resolve_type(&mut self, typ: clang::Type) -> Result<Type> {
+    pub fn resolve_type(&mut self, typ: clang::Type<'_>) -> Result<Type> {
         // populate template arguments if available
         if let Some(args) = typ.get_template_argument_types() {
             self.local_types.push_layer();
@@ -164,14 +165,14 @@ impl TypeResolver {
     fn resolve_struct(
         &mut self,
         name: Ustr,
-        entity: clang::Entity,
+        entity: clang::Entity<'_>,
         size: Option<usize>,
     ) -> Result<StructType> {
         let children = entity.get_children();
         let base = children
             .iter()
             .find(|ent| ent.get_kind() == clang::EntityKind::BaseSpecifier)
-            .and_then(|ent| ent.get_definition())
+            .and_then(clang::Entity::get_definition)
             .map(|ent| self.resolve_decl(ent))
             .transpose()?
             .and_then(|ty| ty.into_struct().ok());
@@ -190,7 +191,7 @@ impl TypeResolver {
                         typ,
                         bit_offset,
                         is_bitfield: child.is_bit_field(),
-                    })
+                    });
                 }
                 clang::EntityKind::Method | clang::EntityKind::Destructor if child.is_virtual_method() => {
                     let name = self.get_entity_name(child);
@@ -213,7 +214,7 @@ impl TypeResolver {
         })
     }
 
-    fn resolve_enum(&mut self, name: Ustr, entity: clang::Entity) -> Result<EnumType> {
+    fn resolve_enum(&mut self, name: Ustr, entity: clang::Entity<'_>) -> Result<EnumType> {
         let children = entity.get_children();
         let mut members = vec![];
 
@@ -229,7 +230,7 @@ impl TypeResolver {
         Ok(EnumType { name, members, size })
     }
 
-    fn resolve_union(&mut self, name: Ustr, entity: clang::Entity) -> Result<UnionType> {
+    fn resolve_union(&mut self, name: Ustr, entity: clang::Entity<'_>) -> Result<UnionType> {
         let children = entity.get_children();
         let mut members = vec![];
 
@@ -243,7 +244,7 @@ impl TypeResolver {
                     typ,
                     bit_offset,
                     is_bitfield: false,
-                })
+                });
             }
         }
 
@@ -251,7 +252,7 @@ impl TypeResolver {
         Ok(UnionType { name, members, size })
     }
 
-    fn resolve_function(&mut self, typ: clang::Type) -> Result<FunctionType> {
+    fn resolve_function(&mut self, typ: clang::Type<'_>) -> Result<FunctionType> {
         let return_type = self.resolve_type(typ.get_result_type().unwrap())?;
         let mut params = vec![];
 
@@ -261,7 +262,7 @@ impl TypeResolver {
         Ok(FunctionType { return_type, params })
     }
 
-    fn generate_type_name(&mut self, entity: clang::Entity) -> Ustr {
+    fn generate_type_name(&mut self, entity: clang::Entity<'_>) -> Ustr {
         let mut cur = entity;
         let mut full_name = entity
             .get_display_name()
@@ -283,7 +284,7 @@ impl TypeResolver {
         full_name.into()
     }
 
-    fn get_entity_name(&mut self, entity: clang::Entity) -> Ustr {
+    fn get_entity_name(&mut self, entity: clang::Entity<'_>) -> Ustr {
         entity
             .get_name_raw()
             .map(|str| str.as_str().into())

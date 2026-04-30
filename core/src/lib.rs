@@ -1,6 +1,6 @@
-#![feature(slice_group_by)]
-#![feature(assert_matches)]
-#![feature(iter_advance_by)]
+
+
+
 
 pub mod codegen;
 pub mod dwarf;
@@ -36,14 +36,14 @@ pub fn process_specs(specs: Vec<FunctionSpec>, type_info: &TypeInfo, opts: &Opts
     if !errors.is_empty() {
         let message = errors
             .iter()
-            .map(|err| err.to_string())
+            .map(std::string::ToString::to_string)
             .collect::<Vec<_>>()
             .join("\n");
         log::warn!("Some of the patterns have failed:\n{message}",);
     }
 
     if opts.c_output_path.is_none() && opts.rust_output_path.is_none() && opts.dwarf_output_path.is_none() {
-        log::error!("No output option specified, nothing to do")
+        log::error!("No output option specified, nothing to do");
     }
 
     if let Some(path) = &opts.c_output_path {

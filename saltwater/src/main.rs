@@ -1,3 +1,4 @@
+#![allow(tail_expr_drop_order)]
 use error::{Error, Result};
 use flexi_logger::{LogSpecification, Logger};
 use resolver::TypeResolver;

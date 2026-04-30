@@ -1,3 +1,4 @@
+#![allow(clippy::match_same_arms)]
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io;
@@ -83,7 +84,7 @@ impl<'a> DwarfWriter<'a> {
 
     fn get_or_define_type(&mut self, typ: &Type) -> UnitEntryId {
         let name = typ.name();
-        self.cache.get(&name).cloned().unwrap_or_else(|| {
+        self.cache.get(&name).copied().unwrap_or_else(|| {
             let id = self.define_type(typ);
             self.cache.insert(name, id);
             id

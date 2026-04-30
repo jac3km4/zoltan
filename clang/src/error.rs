@@ -21,7 +21,7 @@ pub enum Error {
 }
 
 impl Error {
-    pub fn from_diagnostics(diagnostics: Vec<Diagnostic>) -> Self {
+    pub fn from_diagnostics(diagnostics: Vec<Diagnostic<'_>>) -> Self {
         let msg = diagnostics
             .iter()
             .filter(|err| err.get_severity() == Severity::Error)
