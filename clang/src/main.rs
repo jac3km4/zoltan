@@ -78,6 +78,7 @@ fn run(opts: &Opts) -> Result<()> {
 
     let mut specs = vec![];
     for ent in entities {
+        #[allow(clippy::collapsible_if)]
         if let Some(comment) = ent.get_comment_raw() {
             if let Type::Function(typ) = resolver.resolve_type(ent.get_type().unwrap())? {
                 let name = ent.get_name_raw().unwrap().as_str().into();

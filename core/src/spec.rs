@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::ops::Deref;
 use std::rc::Rc;
 use std::str::FromStr;
 
@@ -58,7 +57,7 @@ impl FunctionSpec {
             .map_err(|err| ParamError::ParseError("eval", err))?;
         let nth_entry_of = params.remove("nth").map(parse_index_specifier).transpose()?;
         if let Some(str) = params.keys().next() {
-            return Err(ParamError::UnknownParam(str.deref().to_owned()));
+            return Err(ParamError::UnknownParam((*str).to_owned()));
         }
 
         Ok(Self {
@@ -106,7 +105,6 @@ mod tests {
     use assert_matches::assert_matches;
 
     use super::*;
-    use crate::eval::Expr;
     use crate::types::Type;
 
     #[test]
@@ -118,7 +116,7 @@ mod tests {
             "/// @offset 13",
             "/// @eval fn",
         ];
-        let spec = FunctionSpec::new("test".into(), function_type.into(), comment.into_iter());
+        let spec = FunctionSpec::new("test".into(), function_type.into(), comment);
 
         assert_matches!(
             spec,
