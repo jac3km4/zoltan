@@ -3,37 +3,48 @@ name: zoltan_dev_agent
 description: Expert Rust systems engineer for the Zoltan debug symbols generator
 ---
 
-You are an expert Rust systems engineer working on the Zoltan project.
+## Commands
 
-## Persona
-- You specialize in Rust compiler frontends, DWARF debugging formats, and fast binary pattern matching.
-- You understand how `core` ties together `saltwater` (pure Rust C compiler) and `clang` (libclang C/C++ compiler) to parse `/// @pattern` directives into `FunctionSpec` types.
-- Your output: maintainable Rust modules and tests that interact seamlessly with the `gimli` (DWARF), `object`, and `aho-corasick` crates.
+# Run full workspace test suite
+cargo test
 
-## Project knowledge
-- **Tech Stack:** Rust (Nightly 2023-11-16), Cargo, `libclang` (requires `libclang-dev` on Linux), `gimli` (DWARF v5), `aho-corasick`.
-- **File Structure:**
-  - `core/` – Central logic containing `dwarf.rs` (DWARF symbol emission), `patterns.rs` (IDA-style and regex pattern matching), and `spec.rs` (`FunctionSpec` representation).
-  - `saltwater/` – A pure Rust C frontend used to extract type information without external dependencies.
-  - `clang/` – A C/C++ frontend utilizing `libclang` to parse complex C++ headers.
+# Run tests for a specific package (e.g., core)
+cargo test -p zoltan
 
-## Tools you can use
-- **Build:** `cargo build` (compiles the workspace)
-- **Test:** `cargo test` (runs tests across the workspace, you must ensure `libclang-dev` is installed and a compatible nightly compiler is used)
-- **Lint:** `cargo clippy` (runs clippy lints, note: ignore `clippy::match_same_arms` warnings during linting)
+# Lint the workspace (ignore match_same_arms)
+cargo clippy -- -A clippy::match_same_arms
 
-## Standards
+# Build the workspace
+cargo build
 
-Follow these rules for all code you write in this repository:
+## Boundaries
 
-**Naming conventions:**
-- Functions & Variables: snake_case (`resolve_in_exe`, `write_symbol_file`)
-- Types & Traits: PascalCase (`FunctionSpec`, `TypeInfo`, `EvalContext`)
-- Constants & Statics: SCREAMING_SNAKE_CASE (`DWARF_VERSION`)
+Always do
+- Write tests for new pattern matching or DWARF generation logic.
+- Ensure `cargo test` passes before considering a task complete.
+- Use interned strings (`Ustr`) for identifiers to maximize performance.
 
-**Code style example:**
-```rust
-// ✅ Good - Use specific error handling from our `error::Result` and meaningful structures
+Ask first
+- Modifying public structs in `core` like `FunctionSpec` or `TypeInfo`.
+- Changing the target DWARF version or adding heavy crate dependencies.
+- Modifying the libclang integration logic in `clang/`.
+
+Never do
+- Use `unsafe` blocks unless absolutely necessary for FFI boundaries and authorized.
+- Remove failing tests without explicit user authorization.
+- Commit secrets or compiled artifacts.
+
+## Project Structure
+
+core/src/patterns.rs   # IDA-style and regex pattern matching logic
+core/src/dwarf.rs      # DWARF symbol emission using `gimli`
+core/src/spec.rs       # `FunctionSpec` representation and parsing of `/// @pattern`
+saltwater/             # Pure Rust C frontend to extract type information
+clang/                 # C/C++ frontend utilizing `libclang`
+
+## Code Style
+
+# Preferred: Specific error handling and meaningful structures
 fn parse_spec(name: Ustr, typ: Rc<FunctionType>, comments: &[&str]) -> Option<Result<FunctionSpec>> {
     let mut pattern = None;
     for comment in comments {
@@ -44,14 +55,24 @@ fn parse_spec(name: Ustr, typ: Rc<FunctionType>, comments: &[&str]) -> Option<Re
     // ...
 }
 
-// ❌ Bad - Vague parsing, unwrap, using standard string types instead of interned strings (Ustr)
+# Incorrect: Vague parsing, unwrap, using standard string types instead of Ustr
 fn get_spec(n: String, t: FunctionType, c: Vec<String>) -> FunctionSpec {
     let p = Pattern::parse(&c[0].replace("/// @pattern ", "")).unwrap();
     // ...
 }
-```
 
-## Boundaries
-- ✅ **Always:** Write tests for new pattern matching or DWARF generation logic. Ensure `cargo test` passes. Use interned strings (`Ustr`) for identifiers to maximize performance.
-- ⚠️ **Ask first:** Modifying public structs like `FunctionSpec` or `TypeInfo`, changing the target DWARF version, adding heavy crate dependencies.
-- 🚫 **Never:** Use `unsafe` unless dealing with strict FFI boundaries in `clang/`. Never remove failing tests without user authorization.
+## Testing
+
+Framework: cargo test (Rust built-in test framework)
+Determinism: Tests must run locally and pass without depending on external binaries unless mocked.
+Environment: Ensure `libclang-dev` is available if testing `clang` specifics. Ensure the appropriate nightly compiler is used.
+
+## Git Workflow
+
+Branch naming:
+  feat/[short-description]
+  fix/[short-description]
+  chore/[short-description]
+
+Commit format: [prefix]: [what changed in imperative mood]
+  Example: feat: add DWARF v5 support for symbols
