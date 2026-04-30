@@ -81,7 +81,7 @@ pub struct ExeProperties {
 }
 
 impl ExeProperties {
-    pub fn from_object<'a: 'b, 'b, O: Object<'a, 'b>>(obj: &'b O) -> Self {
+    pub fn from_object<'data, O: Object<'data>>(obj: &'data O) -> Self {
         Self {
             architecture: obj.architecture(),
             endianess: obj.endianness(),

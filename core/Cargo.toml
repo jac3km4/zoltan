@@ -7,23 +7,23 @@ edition = "2024"
 crate-type = ["rlib"]
 
 [dependencies]
-thiserror = "1"
-enum-as-inner = "0.4"
+thiserror = "2"
+enum-as-inner = "0.7"
 log = "0.4"
-aho-corasick = "0.7"
+aho-corasick = "1.1"
 peg = "0.8"
-ustr = "0.8"
-derive_more = "0.99"
-bpaf = "0.4"
-auto_enums = "0.7"
+ustr = "1.1"
+derive_more = { version = "2.1", features = ["full"] }
+bpaf = "0.9"
+auto_enums = "0.8"
 
 [dependencies.gimli]
-version = "0.26"
+version = "0.33"
 default-features = false
 features = ["read", "write", "std"]
 
 [dependencies.object]
-version = "0.28"
+version = "0.39"
 default-features = false
 features = ["read_core", "write_std", "elf", "pe"]
 
